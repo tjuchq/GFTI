@@ -45,21 +45,15 @@
     return v;
   }
 
-  // 距离 R = 欧氏距离 √(Σ(Ui − Si)²)
+  // 距离 R = Σ √|Ui − Si|
   function distance(u, s) {
     var r = 0;
-    for (var i = 0; i < 5; i++) {
-      var d = u[i] - s[i];
-      r += d * d;
-    }
-    return Math.sqrt(r);
+    for (var i = 0; i < 5; i++) r += Math.sqrt(Math.abs(u[i] - s[i]));
+    return r;
   }
-
-  // 相似度 k = 2500 / R² ，R=50 时为 100%，随距离增大渐近于 0%
+  // 相似度 k = e^((12 − R) / 8)，后台保留两位小数
   function similarity(R) {
-    if (R < 0.01) return 100;
-    var raw = 250000 / (R * R);
-    return Math.round(Math.min(raw, 100) * 100) / 100;
+    return Math.round(Math.exp((12 - R) / 8) * 100 * 100) / 100;
   }
 
   function match(u, topN) {
