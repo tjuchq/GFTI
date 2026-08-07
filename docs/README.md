@@ -45,10 +45,10 @@
 npm run test:assessment
 ```
 
-第二步，批准新版本并更新旧基准。当前版本是 `1.0.2`，所以下一个示例版本是 `1.0.3`：
+第二步，仅当算法结果是有意改变时，批准新版本并更新唯一基线。当前版本是 `1.0.3`，所以下一个示例版本是 `1.0.4`：
 
 ```powershell
-npm run algorithm:update-baseline -- 1.0.3
+npm run algorithm:update-baseline -- 1.0.4
 ```
 
 第三步，检查生成的差异符合预期后，运行完整测试：

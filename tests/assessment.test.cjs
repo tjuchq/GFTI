@@ -22,7 +22,7 @@ test('评测 interface 公开稳定的算法版本', function () {
  * @returns {{questions: Array<object>, songs: Array<object>}} 评测所需的题目和歌曲。
  */
 function createWorkedExample() {
-  // 同调曲使用选择 A 后的原始五维值，可验证双方经过同一算法处理后距离仍为零。
+  // 原值曲使用参与者拉伸前的五维值，可验证歌曲参数不会跟随参与者一起拉伸。
   return {
     questions: [
       {
@@ -33,7 +33,7 @@ function createWorkedExample() {
       }
     ],
     songs: [
-      { name: '同调曲', p: [40, 9, 0, 0, 0] },
+      { name: '原值曲', p: [40, 9, 0, 0, 0] },
       { name: '远调曲', p: [100, 9, 0, 0, 0] }
     ]
   };
@@ -79,7 +79,7 @@ function loadProductionData() {
 }
 
 // 这条 tracer bullet 验证稳定不变量，精确数值只由唯一算法基线负责。
-test('完整答案会得到有效五维气韵和按距离排序的契合歌曲', function () {
+test('参与者五维气韵会拉伸而歌曲参数保持最终坐标', function () {
   const assessment = createAssessment(createWorkedExample());
   const result = assessment.evaluate(['A'], { topN: 2 });
 
@@ -89,7 +89,7 @@ test('完整答案会得到有效五维气韵和按距离排序的契合歌曲',
   });
   assert.equal(result.matches.length, 2);
   assert.deepEqual(result.matches[0], {
-    name: '同调曲', distance: 0, similarity: 100, displayPercent: 100
+    name: '原值曲', distance: 15, similarity: 100, displayPercent: 100
   });
   assert.ok(result.matches[0].distance <= result.matches[1].distance);
 });

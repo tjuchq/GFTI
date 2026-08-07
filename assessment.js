@@ -29,10 +29,10 @@ function createAssessmentModule() {
   'use strict';
 
   const AXIS_COUNT = 5;
-  const ALGORITHM_VERSION = '1.0.2';
+  const ALGORITHM_VERSION = '1.0.3';
 
   /* ==========================================================
-   * 逐轴温和拉伸配置
+   * 参与者五维气韵的逐轴温和拉伸配置
    *
    * 问题背景：原始得分大量聚集在 40~60（古典轴 60~80），
    *          导致用户向量与歌曲向量距离差异小、区分度差。
@@ -55,7 +55,7 @@ function createAssessmentModule() {
    *   原始 70 → 70 + 0 + 6           = 76
    *   原始 80 → 70 + (80-70)*1.6 + 6 = 92
    * ========================================================== */
-  var SPREAD_CONFIG = [
+  var PARTICIPANT_SPREAD_CONFIG = [
     { center: 70, gain: 1.6, bias: 6 },   // 古典：聚集在 70，保留 +6 偏移
     { center: 50, gain: 1.6, bias: 0 },   // 旁征博引
     { center: 50, gain: 1.6, bias: 0 },   // 含蓄蕴藉
@@ -64,14 +64,14 @@ function createAssessmentModule() {
   ];
 
   /**
-   * 对五维气韵做逐轴温和拉伸，增大区分度。
+   * 对参与者五维气韵做逐轴温和拉伸，增大区分度。
    *
    * @param {number[]} rawProfile scoreProfile 输出的原始五维值（每轴 0~100）。
    * @returns {number[]} 拉伸后的五维值，每轴 clamp 到 [0, 100]。
    */
-  function spreadProfile(rawProfile) {
+  function spreadParticipantProfile(rawProfile) {
     return rawProfile.map(function (val, i) {
-      var cfg = SPREAD_CONFIG[i];
+      var cfg = PARTICIPANT_SPREAD_CONFIG[i];
       var deviation = val - cfg.center;
       var stretched = cfg.center + deviation * cfg.gain + cfg.bias;
       return Math.round(Math.max(0, Math.min(100, stretched)) * 100) / 100;
@@ -85,9 +85,9 @@ function createAssessmentModule() {
    * @returns {{evaluate: function(Array<string>, {topN?: number}=): object}} 公开评测 interface。
    */
   function createAssessment(data) {
-    // 预处理：对歌曲参数也做同样的拉伸，保证用户侧和歌曲侧在同一尺度下比较。
-    var stretchedSongs = data.songs.map(function (song) {
-      return { name: song.name, p: spreadProfile(song.p.slice()) };
+    // 歌曲参数是最终坐标，只复制数据以避免评测过程改写调用方输入。
+    var songs = data.songs.map(function (song) {
+      return { name: song.name, p: song.p.slice() };
     });
 
     /**
@@ -103,11 +103,11 @@ function createAssessmentModule() {
       }
 
       var rawProfile = scoreProfile(data.questions, answers);
-      var profile = spreadProfile(rawProfile);
+      var profile = spreadParticipantProfile(rawProfile);
       var topN = options && options.topN ? options.topN : 5;
 
       // 线上版本先把距离保留两位再排序；这里照旧处理，避免重构改变名次。
-      var matches = stretchedSongs.map(function (song) {
+      var matches = songs.map(function (song) {
         var songDistance = calculateDistance(profile, song.p);
         var songSimilarity = calculateSimilarity(songDistance);
 
@@ -160,8 +160,8 @@ function createAssessmentModule() {
   /**
    * 计算五维气韵与歌曲参数之间的欧氏距离。
    *
-   * @param {number[]} profile 五维气韵（已拉伸）。
-   * @param {number[]} songProfile 歌曲参数（已拉伸）。
+   * @param {number[]} profile 参与者五维气韵（已拉伸）。
+   * @param {number[]} songProfile 歌曲参数（最终坐标，不拉伸）。
    * @returns {number} 未取整的欧氏距离。
    */
   function calculateDistance(profile, songProfile) {

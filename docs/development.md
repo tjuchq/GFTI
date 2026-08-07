@@ -188,7 +188,7 @@ const result = assessment.evaluate(answers, { topN: 5 });
 
 返回值包括 `profile` 和 `matches`。字段说明见[算法说明](./algorithm.md)。
 
-当前实现会在原始计分后对参与者五维气韵和歌曲参数执行相同的逐轴拉伸。公式与配置见[算法说明](./algorithm.md#五维气韵如何拉伸)。
+当前实现会在原始计分后只拉伸参与者五维气韵。歌曲参数是最终坐标，不参与拉伸。公式与配置见[算法说明](./algorithm.md#参与者五维气韵如何拉伸)。
 
 若要比较新旧算法的整体分布，准备一份固定的 `samples.csv`，分别用两个版本重新计算，再比较两份 `summary.json`。不要为新旧版本各生成一批随机答案。
 
