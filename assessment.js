@@ -57,11 +57,11 @@ function createAssessmentModule() {
    *   原始 80 → 50 + tanh(2)     * 50 ≈ 98.2
    * ========================================================== */
   var PARTICIPANT_SPREAD_CONFIG = [
-    { center: 50, gain: 2 },   // 古典
-    { center: 50, gain: 2 },   // 旁征博引
-    { center: 50, gain: 2 },   // 含蓄蕴藉
-    { center: 50, gain: 2 },   // 致密沉实
-    { center: 50, gain: 2 }    // 精心构架
+    { center: 50, gain: 1.5 },   // 古典
+    { center: 50, gain: 1.5 },   // 旁征博引
+    { center: 50, gain: 1.5 },   // 含蓄蕴藉
+    { center: 50, gain: 1.5 },   // 致密沉实
+    { center: 50, gain: 1.5 }    // 精心构架
   ];
 
   /* ==========================================================
@@ -97,8 +97,7 @@ function createAssessmentModule() {
     return rawProfile.map(function (val, i) {
       var cfg = PARTICIPANT_SPREAD_CONFIG[i];
       var normalized = (val - cfg.center) / 30;
-      var amplitude = Math.min(cfg.center, 100 - cfg.center);
-      var stretched = cfg.center + Math.tanh(normalized * cfg.gain) * amplitude;
+      var stretched = 50 + Math.tanh(normalized * cfg.gain) * 50; // 输出中性点恒为 50，振幅恒为 50
       return Math.round(Math.max(0, Math.min(100, stretched)) * 100) / 100;
     });
   }
