@@ -77,8 +77,8 @@ function createAssessmentModule() {
    *
    *   单调递减，相对排序与距离排序完全一致。
    * ========================================================== */
-  var SIMILARITY_PLATEAU = 3.5;
-  var SIMILARITY_DECAY_BASE = 4.5;
+  var SIMILARITY_PLATEAU = 30000;
+  var SIMILARITY_DECAY_BASE = 45000;
   var SIMILARITY_EXPONENT = 1.2;
 
   /**
@@ -178,8 +178,7 @@ function createAssessmentModule() {
  /**
   * Lp 距离计算（v1.5.2 修正）。
   *
-  * 在内部求和后乘以 0.1 再取 5 次方，最后外部乘 10，
-  * 等价于将原始 Lp(0.2) 距离线性压缩至 1/10000，
+  * 在内部求和后乘以 0.1 再取 5 次方，最后外部乘 100000，
   * 避免数值溢出导致相似度恒为 0。
   * 相对排序与原始距离完全一致。
  */
@@ -191,7 +190,7 @@ function createAssessmentModule() {
      powerSum += Math.pow(difference, DISTANCE_POWER);
    }
  
-   return 10 * Math.pow(powerSum * 0.1, 1 / DISTANCE_POWER);
+   return 100000 * Math.pow(powerSum * 0.1, 1 / DISTANCE_POWER);
  }
   
   /**
