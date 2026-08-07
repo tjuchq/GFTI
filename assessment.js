@@ -199,6 +199,7 @@ function createAssessmentModule() {
    * @returns {number} 0~100 相似度，保留两位小数。
    */
   function calculateSimilarity(distance) {
+    console.log('[SIM] distance=' + distance + ' plateau=' + SIMILARITY_PLATEAU);
     if (distance <= SIMILARITY_PLATEAU) {
       return 100;
     }
