@@ -29,63 +29,55 @@ function createAssessmentModule() {
   'use strict';
 
   const AXIS_COUNT = 5;
-  const ALGORITHM_VERSION = '1.1.0';
+  const ALGORITHM_VERSION = '1.4.1';
 
   /* ==========================================================
-   * 参与者五维气韵的逐轴软饱和拉伸配置（v1.1.0）
-   *
-   * 问题背景：原始得分大量聚集在 40~60（古典轴 60~80），
-   *          旧版线性拉伸 + clamp 会把两端截断堆积（100 分桶异常高），
-   *          且古典轴 center=70 把整体分布推偏（均值 63）。
-   *
-   * 方案：五轴统一 center=50，用 tanh 软饱和替代线性拉伸：
-   *   stretched = center + tanh(((raw - center) / 30) * gain) * amplitude
-   *   amplitude = min(center, 100 - center) = 50
-   *
-   * 性质：
-   *   - tanh 输出严格在 (-1, 1)，结果严格落在 (0, 100)，永不 clamp、不堆积；
-   *   - S 形映射近似正态 CDF，钟形原始分过一遍后接近均匀分布；
-   *   - 中间区域近似线性（保留区分度），两端自然饱和。
-   *
-   * 效果示例（center=50, gain=2）：
-   *   原始 20 → 50 + tanh(-2)    * 50 ≈ 1.8
-   *   原始 30 → 50 + tanh(-1.33) * 50 ≈ 6.5
-   *   原始 40 → 50 + tanh(-0.67) * 50 ≈ 20.9
-   *   原始 50 → 50
-   *   原始 60 → 50 + tanh(0.67)  * 50 ≈ 79.1
-   *   原始 70 → 50 + tanh(1.33)  * 50 ≈ 93.5
-   *   原始 80 → 50 + tanh(2)     * 50 ≈ 98.2
+   * 参与者五维气韵的逐轴软饱和拉伸配置（v1.1.0，沿用）
+   *   stretched = 50 + tanh(((raw - center) / 30) * gain) * 50
    * ========================================================== */
   var PARTICIPANT_SPREAD_CONFIG = [
-    { center: 70, gain: 2.5 },   // 古典
-    { center: 50, gain: 1.6 },   // 旁征博引
-    { center: 50, gain: 1.6 },   // 含蓄蕴藉
-    { center: 50, gain: 1.6 },   // 致密沉实
-    { center: 50, gain: 1.6 }    // 精心构架
+    { center: 70, gain: 2.25 },   // 古典
+    { center: 50, gain: 1.6 },    // 旁征博引
+    { center: 50, gain: 1.6 },    // 含蓄蕴藉
+    { center: 50, gain: 1.6 },    // 致密沉实
+    { center: 50, gain: 1.6 }     // 精心构架
   ];
 
   /* ==========================================================
-   * 古典轴 gamma warp（v1.1.0，替代旧版线性 bias）
-   *
-   * 在拉伸之后，仅对参与者古典轴（index 0）做幂函数 warp，
-   * 把结果微微推向古典一侧，保留"往古典拉"的产品特性。
-   *
-   * 性质：
-   *   - 非线性（幂函数，不是线性加减）；
-   *   - 0 和 100 是不动点，不改变上下限；
-   *   - strength < 1 时整体上推；strength 越接近 1 推力越轻。
-   *
-   * 效果示例（strength=0.8）：
-   *   20  → 100 * 0.2^0.8 ≈ 27.6
-   *   50  → 100 * 0.5^0.8 ≈ 57.4
-   *   80  → 100 * 0.8^0.8 ≈ 83.7
-   *   100 → 100
-   *
-   * 注意：歌曲参数始终保持 data 里的原始数值，不做任何变换；
-   *       距离计算的歌曲一侧永远是原始向量。
+   * 古典轴 gamma warp（v1.1.0，沿用）
+   *   warped = 100 * (value / 100) ^ strength，0 与 100 为不动点
    * ========================================================== */
   var CLASSICAL_AXIS_INDEX = 0;
-  var CLASSICAL_LEAN_STRENGTH = 0.8;
+  var CLASSICAL_LEAN_STRENGTH = 0.75;
+
+  /* ==========================================================
+   * Lp 可调配距离（v1.3.0 引入，v1.4.1 沿用）
+   *   距离 = (Σ |diff_i| ^ DISTANCE_POWER) ^ (1 / DISTANCE_POWER)
+   *   p=2 欧氏，p=1 曼哈顿，<1 更激进地压缩大差异
+   * ========================================================== */
+  var DISTANCE_POWER = 0.4;
+
+  /* ==========================================================
+   * 歌曲坐标以 50 为中心的对称线性压缩（v1.4.1）
+   *   compressed = 50 + (value - 50) * SONG_COMPRESS_SCALE
+   *
+   *   50 始终映射到 50（不动点）
+   *   SCALE = 1.0 → 不压缩
+   *   SCALE < 1.0 → 往中心收（0.8 即 0→10, 100→90）
+   *   SCALE > 1.0 → 往外推（一般不用）
+   *
+   * 仅作用于歌曲参数，参与者气韵不做此变换。
+   * 压缩在 createAssessment 初始化时一次性完成，运行时零开销。
+   * ========================================================== */
+  var SONG_COMPRESS_SCALE = 0.8;
+
+  /* ==========================================================
+   * 高斯核相似度（v1.2.0 公式，v1.4.1 沿用）
+   *   similarity = 100 * exp(-(R / SIGMA)^2)
+   *   注意：v1.4.1 改了压缩公式，距离数值范围可能微调，
+   *   SIGMA 当前保持 70，跑真实歌单后再决定是否需要调。
+   * ========================================================== */
+  var SIGMA = 70;
 
   /**
    * 对参与者五维气韵做逐轴软饱和拉伸，增大区分度且不产生端点堆积。
@@ -97,7 +89,7 @@ function createAssessmentModule() {
     return rawProfile.map(function (val, i) {
       var cfg = PARTICIPANT_SPREAD_CONFIG[i];
       var normalized = (val - cfg.center) / 30;
-      var stretched = 50 + Math.tanh(normalized * cfg.gain) * 50; // 输出中性点恒为 50，振幅恒为 50
+      var stretched = 50 + Math.tanh(normalized * cfg.gain) * 50;
       return Math.round(Math.max(0, Math.min(100, stretched)) * 100) / 100;
     });
   }
@@ -115,15 +107,30 @@ function createAssessmentModule() {
   }
 
   /**
+   * 对歌曲五维坐标做以 50 为中心的对称线性压缩（v1.4.1）。
+   *   compressed = 50 + (value - 50) * SONG_COMPRESS_SCALE
+   *   50 为不动点；SCALE=0.8 时 0→10, 100→90。
+   *
+   * @param {number[]} songP 歌曲原始五维参数。
+   * @returns {number[]} 压缩后的五维参数。
+   */
+  function compressSongProfile(songP) {
+    return songP.map(function (val) {
+      var compressed = 50 + (val - 50) * SONG_COMPRESS_SCALE;
+      return Math.round(compressed * 100) / 100;
+    });
+  }
+
+  /**
    * 使用题目与歌曲数据创建一次可复用的古风气韵评测。
    *
    * @param {{questions: Array<object>, songs: Array<object>}} data 题目与歌曲数据。
    * @returns {{evaluate: function(Array<string>, {topN?: number}=): object}} 公开评测 interface。
    */
   function createAssessment(data) {
-    // 歌曲参数是最终坐标，只复制数据以避免评测过程改写调用方输入。
+    // 歌曲参数在初始化时一次性压缩，后续距离计算直接用压缩后坐标。
     var songs = data.songs.map(function (song) {
-      return { name: song.name, p: song.p.slice() };
+      return { name: song.name, p: compressSongProfile(song.p) };
     });
 
     /**
@@ -133,7 +140,7 @@ function createAssessmentModule() {
      * @param {{topN?: number}} [options] 返回歌曲数量。
      * @returns {{profile: number[], matches: Array<object>}} 评测结果与诊断值。
      */
-    function evaluate(answers, options) {
+  function evaluate(answers, options) {
       if (!Array.isArray(answers) || answers.length !== data.questions.length) {
         throw new TypeError('每道题都必须有有效答案');
       }
@@ -141,7 +148,7 @@ function createAssessmentModule() {
       var rawProfile = scoreProfile(data.questions, answers);
       var profile = spreadParticipantProfile(rawProfile);
 
-      // 仅参与者古典轴在拉伸后接 gamma warp；歌曲侧保持原始坐标。
+      // 仅参与者古典轴在拉伸后接 gamma warp；歌曲侧已压缩，不再额外变换。
       profile[CLASSICAL_AXIS_INDEX] = leanClassical(
         profile[CLASSICAL_AXIS_INDEX], CLASSICAL_LEAN_STRENGTH);
 
@@ -199,38 +206,39 @@ function createAssessmentModule() {
   }
 
   /**
-   * 计算五维气韵与歌曲参数之间的欧氏距离。
+   * 计算五维气韵与歌曲参数之间的 Lp 距离（v1.3.0 引入，v1.4.1 沿用）。
+   *
+   * 距离 = (Σ |profile_i - song_i| ^ DISTANCE_POWER) ^ (1 / DISTANCE_POWER)
+   *   DISTANCE_POWER=2 为欧氏，=1 为曼哈顿，<1 更激进地压缩大差异。
+   *   五轴等权，不做轴权重区分。
    *
    * @param {number[]} profile 参与者五维气韵（已拉伸 + 古典 warp）。
-   * @param {number[]} songProfile 歌曲参数（data 原始坐标，不拉伸不变换）。
-   * @returns {number} 未取整的欧氏距离。
+   * @param {number[]} songProfile 歌曲参数（v1.4.1 已对称压缩）。
+   * @returns {number} 未取整的 Lp 距离。
    */
   function calculateDistance(profile, songProfile) {
-    var squaredDistance = 0;
+    var powerSum = 0;
 
     for (var axisIndex = 0; axisIndex < AXIS_COUNT; axisIndex += 1) {
-      var difference = profile[axisIndex] - songProfile[axisIndex];
-      squaredDistance += difference * difference;
+      var difference = Math.abs(profile[axisIndex] - songProfile[axisIndex]);
+      powerSum += Math.pow(difference, DISTANCE_POWER);
     }
 
-    return Math.sqrt(squaredDistance);
+    return Math.pow(powerSum, 1 / DISTANCE_POWER);
   }
 
   /**
-   * 把距离换算成保留两位小数的相似度。
+   * 把距离换算成保留两位小数的相似度（高斯核，v1.2.0 公式，v1.4.1 沿用）。
    *
-   * 公式：k = 100000 / R²
-   *   R ≈ 31.62 → 100000/1000 = 100%（截断）
-   *   R = 50    → 100000/2500 = 40%
-   *   R = 100   → 100000/10000 = 10%
+   * 公式：similarity = 100 * exp(-(R / SIGMA)^2)
+   *   单调递减，R 越小相似度越大，排序次序与距离排序一致。
+   *   SIGMA 控制衰减宽度；v1.4.1 改压缩公式后距离范围可能微调，当前保持 70。
    *
-   * @param {number} distance 欧氏距离。
+   * @param {number} distance Lp 距离。
    * @returns {number} 0 到 100 之间的相似度。
    */
   function calculateSimilarity(distance) {
-    if (distance < 0.01) return 100;
-
-    var raw = 100000 / (distance * distance);
+    var raw = 100 * Math.exp(-(distance * distance) / (SIGMA * SIGMA));
     return Math.round(Math.min(raw, 100) * 100) / 100;
   }
 
