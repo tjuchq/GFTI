@@ -190,6 +190,16 @@ test('一万和十万样本档位都能完成', async function ({ page }) {
   }
 });
 
+// 一百万样本用于开发者手动进行高精度和性能测试，页面必须明确提供该档位。
+test('用户可以选择一百万样本档位', async function ({ page }) {
+  await page.goto('/simulation.html');
+
+  const sampleCount = page.locator('#sample-count');
+  await expect(sampleCount.locator('option[value="1000000"]')).toHaveText('1,000,000');
+  await sampleCount.selectOption('1000000');
+  await expect(sampleCount).toHaveValue('1000000');
+});
+
 // 当前生效参数与原始参数必须形成不同快照，避免后台调整被统计页忽略。
 test('用户可以在当前生效参数和原始参数之间切换', async function ({ page }) {
   await page.goto('/simulation.html');

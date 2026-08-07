@@ -81,7 +81,7 @@ function createSimulationModule() {
       const sampleRecords = request.includeSampleRecords ? [] : null;
 
       for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
-        // 生成模式逐条计算而不保留答案，十万次运行也只占用固定的统计内存。
+        // 生成模式逐条计算而不保留答案，百万次运行也只占用固定的统计内存。
         const answers = suppliedSamples
           ? suppliedSamples[sampleIndex]
           : createAnswers(config.questions, random);

@@ -82,7 +82,9 @@ npm run test:integration
 - [`playwright.config.cjs`](../playwright.config.cjs)
 - [`tests/test-server.cjs`](../tests/test-server.cjs)
 
-Playwright 会启动本地静态服务器，然后用真实 Chromium 点击页面。当前覆盖普通评测完整答题，以及模拟页的运行、取消、排序、导入、导出、报告比较、参数来源和十万样本档位。
+Playwright 会启动本地静态服务器，然后用真实 Chromium 点击页面。当前覆盖普通评测完整答题，以及模拟页的运行、取消、排序、导入、导出、报告比较、参数来源和样本档位。
+
+自动测试会实际运行十万样本，并检查一百万样本档位可以选择。为了控制持续集成耗时，一百万样本的完整性能由开发者手动测试。
 
 浏览器测试固定使用一个 worker，避免多个测试同时争用端口或让大样本测试相互影响。
 
