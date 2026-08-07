@@ -160,6 +160,26 @@
     inkTransition(function () { state.idx = ni; renderQuestion(); window.scrollTo(0, 0); });
   }
 
+  /**
+   * 格式化五维气韵的页面展示值，避免浮点尾数污染用户界面。
+   *
+   * @param {number} value 五维气韵数值。
+   * @returns {string} 保留一位小数并带百分号的文本。
+   */
+  function formatProfilePercent(value) {
+    return Number(value).toFixed(1) + '%';
+  }
+
+  /**
+   * 格式化契合度的页面展示值。
+   *
+   * @param {number} value 契合度数值。
+   * @returns {string} 四舍五入后的整数文本，不包含百分号。
+   */
+  function formatMatchPercent(value) {
+    return String(Math.round(Number(value)));
+  }
+
   /* ---------- 结果 ---------- */
   function finish() {
     var result = createCurrentAssessment().evaluate(state.answers, { topN: 5 });
@@ -182,8 +202,8 @@
       el.className = 'axis';
       el.innerHTML =
         '<div class="lab">' +
-          '<span class="l ' + (pos >= neg ? 'hi' : 'dim') + '">' + a.pos + '<i>' + pos + '%</i></span>' +
-          '<span class="r ' + (neg > pos ? 'hi' : 'dim') + '"><i style="margin:0 6px 0 0">' + neg + '%</i>' + a.neg + '</span>' +
+          '<span class="l ' + (pos >= neg ? 'hi' : 'dim') + '">' + a.pos + '<i>' + formatProfilePercent(pos) + '</i></span>' +
+          '<span class="r ' + (neg > pos ? 'hi' : 'dim') + '"><i style="margin:0 6px 0 0">' + formatProfilePercent(neg) + '</i>' + a.neg + '</span>' +
         '</div>' +
         '<div class="bar"><span class="mid"></span><i></i></div>';
       box.appendChild(el);
@@ -197,7 +217,7 @@
       var d = document.createElement('div');
       d.className = 'song';
       d.style.animationDelay = (0.5 + i * 0.1) + 's';
-      var showSim = s.displayPercent;
+      var showSim = formatMatchPercent(s.displayPercent);
       d.innerHTML = '<div class="rk">' + CN[i] + '</div>' +
                     '<div class="nm">' + s.name + '</div>' +
                     '<div class="sim">契合 <b>' + showSim + '</b>%</div>';
@@ -261,14 +281,14 @@
       c.fillStyle = pos >= neg ? '#5a5249' : '#c3b9a9';
       c.fillText(a.pos, L, yy);
       c.font = '14px ' + serif;
-      c.fillText(pos + '%', L + c.measureText(a.pos).width + 42, yy);
+      c.fillText(formatProfilePercent(pos), L + c.measureText(a.pos).width + 42, yy);
 
       c.textAlign = 'right';
       c.font = '17px ' + serif;
       c.fillStyle = neg > pos ? '#5a5249' : '#c3b9a9';
       c.fillText(a.neg, L + RW, yy);
       c.font = '14px ' + serif;
-      c.fillText(neg + '%', L + RW - c.measureText(a.neg).width - 42, yy);
+      c.fillText(formatProfilePercent(neg), L + RW - c.measureText(a.neg).width - 42, yy);
 
       var by = yy + 16;
       c.fillStyle = 'rgba(42,37,33,.075)'; c.fillRect(L, by, RW, 10);
@@ -299,14 +319,14 @@
       c.fillText(s.name, L + 46, yy);
 
       c.textAlign = 'right';
-      var pct = s.displayPercent;
+      var pct = formatMatchPercent(s.displayPercent);
       c.font = '13px ' + serif; c.fillStyle = '#9b9182';
       c.fillText('%', L + RW, yy);
       c.font = '25px ' + kai; c.fillStyle = '#9e3d32';
-      c.fillText(String(pct), L + RW - 15, yy);
+      c.fillText(pct, L + RW - 15, yy);
       c.font = '13px ' + serif; c.fillStyle = '#9b9182';
       c.textAlign = 'right';
-      c.fillText('契合', L + RW - 15 - c.measureText(String(pct)).width - 44, yy);
+      c.fillText('契合', L + RW - 15 - c.measureText(pct).width - 44, yy);
 
       c.strokeStyle = 'rgba(42,37,33,.08)';
       c.beginPath(); c.moveTo(L, yy + 20); c.lineTo(L + RW, yy + 20); c.stroke();
