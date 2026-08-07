@@ -56,11 +56,11 @@ function createAssessmentModule() {
    *   原始 80 → 70 + (80-70)*1.6 + 6 = 92
    * ========================================================== */
   var PARTICIPANT_SPREAD_CONFIG = [
-    { center: 70, gain: 1.6, bias: 6 },   // 古典：聚集在 70，保留 +6 偏移
-    { center: 50, gain: 1.6, bias: 0 },   // 旁征博引
-    { center: 50, gain: 1.6, bias: 0 },   // 含蓄蕴藉
-    { center: 50, gain: 1.6, bias: 0 },   // 致密沉实
-    { center: 50, gain: 1.6, bias: 0 }    // 精心构架
+    { center: 70, gain: 2, bias: -6 },   // 古典：聚集在 70，保留 +6 偏移
+    { center: 50, gain: 2, bias: 0 },   // 旁征博引
+    { center: 50, gain: 2, bias: 0 },   // 含蓄蕴藉
+    { center: 50, gain: 2, bias: 0 },   // 致密沉实
+    { center: 50, gain: 2, bias: 0 }    // 精心构架
   ];
 
   /**
