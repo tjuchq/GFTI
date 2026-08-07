@@ -38,17 +38,22 @@ npx playwright install chromium
 npm run test:assessment
 ```
 
-文件：[`tests/assessment.test.cjs`](../tests/assessment.test.cjs)
+相关文件：
+
+- [`tests/assessment.test.cjs`](../tests/assessment.test.cjs)
+- [`tests/algorithm-baseline-command.test.cjs`](../tests/algorithm-baseline-command.test.cjs)
+- [`tests/fixtures/algorithm-baseline.json`](../tests/fixtures/algorithm-baseline.json)
 
 这里验证：
 
 - 模块公开明确的算法版本。
-- 手算用例得到固定的五维气韵、距离和相似度。
+- 完整答案满足五维范围、同参数距离为零和距离排序等稳定不变量。
 - 缺少答案或未知选项会被拒绝。
 - 距离保留两位后并列时，歌曲按中文名称排序。
-- 生产数据中的固定答案保持现有完整输出。
+- 生产数据中的固定答案符合唯一已批准基线。
+- 基线更新命令会同时更新算法版本和固定输出。
 
-最后一项是算法重构的安全网。当前字面量基线对应算法 `1.0.1`。除非产品明确决定修改算法，否则不要因为测试失败就更新期望值。
+基线是算法重构的安全网。除非产品明确决定修改算法，否则不要更新它。若变化是有意的，使用文档后面的更新命令，不要手工在多个测试中复制新结果。
 
 ### 模拟与交换格式测试
 
@@ -83,6 +88,8 @@ npm run test:integration
 - [`tests/test-server.cjs`](../tests/test-server.cjs)
 
 Playwright 会启动本地静态服务器，然后用真实 Chromium 点击页面。当前覆盖普通评测完整答题，以及模拟页的运行、取消、排序、导入、导出、报告比较、参数来源和样本档位。
+
+普通评测页面测试只验证页面展示与 `assessment.evaluate()` 返回值一致。具体算法数值由唯一基线负责，因此正式修改算法时不需要编辑页面测试。
 
 自动测试会实际运行十万样本，并检查一百万样本档位可以选择。为了控制持续集成耗时，一百万样本的完整性能由开发者手动测试。
 
@@ -140,15 +147,21 @@ EADDRINUSE: address already in use 127.0.0.1:8777
 
 如果产品决定修改算法，按下面的顺序做：
 
-1. 用旧代码和固定答案保存当前输出。
-2. 准备固定的 `samples.csv`，不要为修改前后分别生成随机数据。
-3. 先添加描述新规则的失败测试。
-4. 修改 `assessment.js`，同时更新 `algorithmVersion`。
-5. 运行 `npm run test:assessment`。
-6. 导入同一份 `samples.csv` 生成新报告，与旧 `summary.json` 比较。
-7. 运行完整的 `npm test`。
+1. 修改 `assessment.js`。能手算的新规则先补一个公开 interface 测试。
+2. 运行 `npm run test:assessment`，确认唯一基线因行为变化而失败。
+3. 选择一个高于当前版本的新版本号，例如 `1.0.2`。
+4. 运行：
 
-只有算法需求确实改变时，才能更新“生产数据的固定答案保持现有完整输出”这条测试。提交说明要写清楚公式或排序为什么改变。
+   ```powershell
+   npm run algorithm:update-baseline -- 1.0.2
+   ```
+
+5. 检查 `assessment.js` 和 `tests/fixtures/algorithm-baseline.json` 的 Git 差异，确认变化符合需求。
+6. 更新算法公式文档。命令不会代替人工解释算法。
+7. 导入同一份 `samples.csv` 生成新报告，与旧 `summary.json` 比较。
+8. 运行完整的 `npm test`。
+
+如果变化不是有意的，不要运行更新命令，应恢复 `assessment.js`。提交说明要写清楚公式或排序为什么改变。
 
 ## 提交前检查
 

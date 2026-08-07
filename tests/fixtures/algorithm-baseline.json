@@ -1,0 +1,19 @@
+{
+  "algorithmVersion": "1.0.1",
+  "answers": [
+    "A", "A", "A", "A", "A",
+    "A", "A", "A", "A", "A",
+    "A", "A", "A", "A", "A",
+    "A", "A", "A", "A", "A"
+  ],
+  "expected": {
+    "profile": [100, 90, 100, 100, 94.8],
+    "matches": [
+      { "name": "龙书龟契", "distance": 11.45, "similarity": 100, "displayPercent": 100 },
+      { "name": "东阳夜怪醉话", "distance": 21.98, "similarity": 100, "displayPercent": 100 },
+      { "name": "旷古回响", "distance": 35.82, "similarity": 77.94, "displayPercent": 78 },
+      { "name": "九九八十一", "distance": 40.67, "similarity": 60.45, "displayPercent": 60 },
+      { "name": "永定四十年", "distance": 53.4, "similarity": 35.07, "displayPercent": 35 }
+    ]
+  }
+}

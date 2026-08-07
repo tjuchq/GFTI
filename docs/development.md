@@ -97,7 +97,80 @@ npm run test:integration
 
 ## 修改评测算法
 
-算法只在 [`assessment.js`](../assessment.js) 中实现。它的公开内容是：
+算法只在 [`assessment.js`](../assessment.js) 中实现。第一次修改算法时，先记住下面三个文件的分工：
+
+| 文件 | 谁来修改 | 用途 |
+| --- | --- | --- |
+| [`assessment.js`](../assessment.js) | 开发者修改算法；更新命令修改版本号 | 正式算法实现 |
+| [`tests/fixtures/algorithm-baseline.json`](../tests/fixtures/algorithm-baseline.json) | 只由更新命令生成 | 唯一已批准的固定答案和完整输出 |
+| [`tests/page.integration.spec.cjs`](../tests/page.integration.spec.cjs) | 通常不需要修改 | 验证页面正确展示算法返回结果 |
+
+不要在 `app.js`、`simulation.js` 或页面测试中复制评测公式和固定结果。
+
+### 最短修改流程
+
+假设你已经修改了 `assessment.js`，并准备把变化作为正式新算法发布：
+
+1. 保存 `assessment.js`。
+2. 运行算法测试：
+
+   ```powershell
+   npm run test:assessment
+   ```
+
+3. 如果失败信息提示“算法行为已变化”，说明唯一基线成功发现了新输出。打开 `tests/fixtures/algorithm-baseline.json` 查看当前版本，例如 `1.0.1`，然后选择更高版本，例如 `1.0.2`。
+4. 运行更新命令：
+
+   ```powershell
+   npm run algorithm:update-baseline -- 1.0.2
+   ```
+
+5. 命令会自动完成两件事：
+
+   - 把 `assessment.js` 中的 `algorithmVersion` 更新为 `1.0.2`。
+   - 使用固定答案重新计算，并覆盖唯一算法基线。
+
+6. 检查生成的差异：
+
+   ```powershell
+   git diff -- assessment.js tests/fixtures/algorithm-baseline.json
+   ```
+
+   重点确认五维气韵、歌曲顺序、距离和相似度的变化符合需求。不要因为命令成功就直接提交。
+7. 如果公式、参数或排序规则改变，同步更新[算法说明](./algorithm.md)。命令只能计算结果，不能解释算法含义。
+8. 运行完整测试：
+
+   ```powershell
+   npm test
+   ```
+
+完整测试通过后，才能提交和推送。推送到 `main` 后，GitHub Actions 会重新测试并部署正式页面。
+
+### 哪些文件不需要跟着改
+
+有意修改算法时，通常不需要手工修改：
+
+- `tests/page.integration.spec.cjs`：它会从公开评测 interface 获取期望结果。
+- `tests/fixtures/algorithm-baseline.json`：由更新命令生成，不要复制粘贴输出。
+- `simulation.js`：模拟诊断本来就调用同一个 `assessment.evaluate()`。
+- GitHub Pages 工作流：它只负责测试、打包和部署。
+
+算法测试还会检查输入错误、结果范围、距离排序等稳定规则。如果更新基线后这些测试仍然失败，说明新算法改变了公开规则，不能靠重复运行命令解决。此时应阅读失败的测试名称，确认新规则是否真的要取消或修改。
+
+### 只重构、不改变结果
+
+如果只是改函数名、拆函数、补注释或整理代码结构，并不打算改变任何评测结果：
+
+1. 不要运行基线更新命令。
+2. 不要更新算法版本。
+3. 运行 `npm run test:assessment`。
+4. 如果基线失败，应修正实现，让原有输出恢复一致。
+
+基线更新命令代表“人工批准算法行为变化”，不是让失败测试变绿的通用修复命令。
+
+### 公开 interface
+
+`assessment.js` 对外提供：
 
 ```js
 {
@@ -115,17 +188,9 @@ const result = assessment.evaluate(answers, { topN: 5 });
 
 返回值包括 `profile` 和 `matches`。字段说明见[算法说明](./algorithm.md)。
 
-修改公式、计分或排序规则时：
+当前实现会在原始计分后对参与者五维气韵和歌曲参数执行相同的逐轴拉伸。公式与配置见[算法说明](./algorithm.md#五维气韵如何拉伸)。
 
-1. 先写失败测试。
-2. 修改算法。
-3. 更新 `algorithmVersion`。
-4. 使用固定答案确认变化符合需求。
-5. 使用同一份 `samples.csv` 比较修改前后的分布。
-
-当前正式算法版本是 `1.0.1`，它在原始计分后对参与者五维气韵和歌曲参数执行相同的逐轴拉伸。公式与配置见[算法说明](./algorithm.md#五维气韵如何拉伸)。
-
-只改函数名、注释或文件结构时，不要更新算法版本。
+若要比较新旧算法的整体分布，准备一份固定的 `samples.csv`，分别用两个版本重新计算，再比较两份 `summary.json`。不要为新旧版本各生成一批随机答案。
 
 ## 修改模拟诊断
 
@@ -173,6 +238,16 @@ npm run build:pages
 ```
 
 结果写入 `dist-pages/`，该目录已被 Git 忽略。若目录已有文件，脚本会停止，避免覆盖不明内容；检查完成后可以手动清空该目录再重新生成。
+
+### 修改算法后 Actions 部署失败
+
+先查看失败步骤：
+
+- `运行完整测试` 失败：在本地运行 `npm test`，处理相同测试错误。算法基线不一致时，按“最短修改流程”批准新版本。
+- `配置 GitHub Pages` 返回 404：仓库尚未在 `Settings → Pages` 中把来源设为 `GitHub Actions`。
+- `部署 GitHub Pages` 失败：先确认测试和“上传正式页面发布包”步骤已经成功，再查看该步骤的具体权限或环境错误。
+
+修复代码后需要创建新提交并推送。直接重跑旧的失败任务仍然使用旧提交，不会包含本地修复。
 
 ## 常见问题
 

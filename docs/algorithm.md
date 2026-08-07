@@ -61,7 +61,7 @@ profile[subAxis] += sub
 
 ## 五维气韵如何拉伸
 
-算法 `1.0.1` 在原始五维值计算完成后增加逐轴拉伸，用来放大各维度偏离聚集中心的程度。每个维度使用下面的公式：
+当前算法在原始五维值计算完成后增加逐轴拉伸，用来放大各维度偏离聚集中心的程度。每个维度使用下面的公式：
 
 ```text
 拉伸值 = clamp(中心值 + (原始值 - 中心值) × 增益 + 偏移, 0, 100)
@@ -156,17 +156,17 @@ const result = assessment.evaluate(answers, { topN: 5 });
 
 `answers` 必须与题目数量相同，每一项都是该题存在的选项键。缺少答案或使用未知键会抛出错误。
 
-返回值示意：
+返回结构示意，数字不代表生产数据的固定基线：
 
 ```js
 {
-  profile: [100, 90, 100, 100, 94.8],
+  profile: [80, 60, 50, 40, 20],
   matches: [
     {
-      name: "龙书龟契",
-      distance: 11.45,
-      similarity: 100,
-      displayPercent: 100
+      name: "示例歌曲",
+      distance: 50,
+      similarity: 40,
+      displayPercent: 40
     }
   ]
 }
@@ -267,6 +267,14 @@ topFiveRate = topFiveCount / sampleCount × 100
 - 距离公式。
 - 相似度公式。
 - 距离取整或歌曲排序规则。
+
+不要手工修改多个测试里的版本和输出。正式批准变化时运行：
+
+```powershell
+npm run algorithm:update-baseline -- <新版本>
+```
+
+命令会更新 `assessment.js` 和唯一算法基线，但不会修改本页的公式说明。开发者仍需检查差异，并按实际规则更新文档。
 
 修改页面样式、按钮文字、图表布局或下载文件名时，不更新算法版本。
 
