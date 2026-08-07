@@ -45,6 +45,8 @@ Web Worker 是浏览器里的后台线程。最多一百万次模拟放在 Worke
 | 路径 | 用途 |
 | --- | --- |
 | [`tests/assessment.test.cjs`](../tests/assessment.test.cjs) | 锁定当前评测输出和排序规则 |
+| [`tests/fixtures/algorithm-baseline.json`](../tests/fixtures/algorithm-baseline.json) | 保存唯一已批准算法版本、固定答案和完整输出 |
+| [`scripts/update-algorithm-baseline.cjs`](../scripts/update-algorithm-baseline.cjs) | 一次更新算法版本和唯一基线 |
 | [`tests/simulation.test.cjs`](../tests/simulation.test.cjs) | 验证固定种子、汇总和参数快照 |
 | [`tests/simulation-artifacts.test.cjs`](../tests/simulation-artifacts.test.cjs) | 验证 CSV、JSON 与报告比较 |
 | [`tests/*.integration.spec.cjs`](../tests/) | 在真实浏览器中操作两个页面 |
@@ -123,6 +125,8 @@ GitHub Pages 本身使用 HTTPS，不受这个问题影响。
 模拟文件使用 `schema_version`。字段结构变化且旧文件不能按原规则读取时，要增加版本号，并为旧版本给出迁移或明确错误。
 
 相关决定见 [`ADR-0001`](./adr/0001-versioned-simulation-artifacts.md)。
+
+算法输出基线只保存一份。页面测试通过公开评测 interface 获取期望结果，不掌握具体版本号或歌曲名单。有意修改算法时使用 `npm run algorithm:update-baseline -- <新版本>`，相关决定见 [`ADR-0003`](./adr/0003-single-approved-algorithm-baseline.md)。
 
 ## GitHub Pages 发布边界
 

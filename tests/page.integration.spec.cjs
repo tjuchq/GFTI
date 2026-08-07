@@ -37,32 +37,38 @@ async function completeAssessment(page, optionKey) {
   await expect(page.locator('#scene-result')).toHaveClass(/on/);
 }
 
-// 期望值来自算法 1.0.1 的正式基线，用来阻止后续重构悄悄改变页面结果。
-test('固定答案会得到算法 1.0.1 的完整页面结果', async function ({ page }) {
+// 页面测试只负责 UI 接线；具体算法数值由唯一算法基线独立锁定。
+test('页面会完整展示公开评测 interface 返回的结果', async function ({ page }) {
   await completeAssessment(page, 'A');
 
-  const renderedResult = await page.evaluate(function () {
+  const comparison = await page.evaluate(function () {
+    const answers = window.GFTI_DATA.questions.map(function () { return 'A'; });
+    const assessment = window.GFTIAssessment.createAssessment({
+      questions: window.GFTI_DATA.questions,
+      songs: window.GFTI_DATA.songs
+    });
+    const expected = assessment.evaluate(answers, { topN: 5 });
+
     return {
-      profile: Array.from(document.querySelectorAll('.axis .lab .l i')).map(function (element) {
-        return Number(element.textContent.replace('%', ''));
-      }),
-      matches: Array.from(document.querySelectorAll('.song')).map(function (element) {
-        return {
-          name: element.querySelector('.nm').textContent,
-          displayPercent: Number(element.querySelector('.sim b').textContent)
-        };
-      })
+      rendered: {
+        profile: Array.from(document.querySelectorAll('.axis .lab .l i')).map(function (element) {
+          return Number(element.textContent.replace('%', ''));
+        }),
+        matches: Array.from(document.querySelectorAll('.song')).map(function (element) {
+          return {
+            name: element.querySelector('.nm').textContent,
+            displayPercent: Number(element.querySelector('.sim b').textContent)
+          };
+        })
+      },
+      expected: {
+        profile: expected.profile,
+        matches: expected.matches.map(function (match) {
+          return { name: match.name, displayPercent: match.displayPercent };
+        })
+      }
     };
   });
 
-  expect(renderedResult).toEqual({
-    profile: [100, 90, 100, 100, 94.8],
-    matches: [
-      { name: '龙书龟契', displayPercent: 100 },
-      { name: '东阳夜怪醉话', displayPercent: 100 },
-      { name: '旷古回响', displayPercent: 78 },
-      { name: '九九八十一', displayPercent: 60 },
-      { name: '永定四十年', displayPercent: 35 }
-    ]
-  });
+  expect(comparison.rendered).toEqual(comparison.expected);
 });

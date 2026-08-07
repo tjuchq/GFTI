@@ -3,11 +3,12 @@
   "private": true,
   "scripts": {
     "test": "npm run test:assessment && npm run test:simulation && npm run test:pages && npm run test:integration",
-    "test:assessment": "node --test tests/assessment.test.cjs",
+    "test:assessment": "node --test tests/assessment.test.cjs tests/algorithm-baseline-command.test.cjs",
     "test:simulation": "node --test tests/simulation.test.cjs tests/simulation-artifacts.test.cjs",
     "test:pages": "node --test tests/pages-build.test.cjs",
     "test:integration": "playwright test",
-    "build:pages": "node scripts/build-pages.cjs"
+    "build:pages": "node scripts/build-pages.cjs",
+    "algorithm:update-baseline": "node scripts/update-algorithm-baseline.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1"

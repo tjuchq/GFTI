@@ -34,3 +34,27 @@
 | 修改模拟诊断页面 | [`simulation.html`](../simulation.html)、[`simulation-page.js`](../simulation-page.js) |
 | 修改后台计算 | [`simulation-worker.js`](../simulation-worker.js) |
 | 添加或修改测试 | [`tests/`](../tests/) 和[测试说明](./testing.md) |
+
+## 修改评测算法的三条命令
+
+修改 [`assessment.js`](../assessment.js) 后，按顺序运行下面三条命令。
+
+第一步，先运行算法测试，确认新实现是否改变了评测结果：
+
+```powershell
+npm run test:assessment
+```
+
+第二步，仅当算法结果是有意改变时，批准新版本并更新唯一基线。当前版本是 `1.0.3`，所以下一个示例版本是 `1.0.4`：
+
+```powershell
+npm run algorithm:update-baseline -- 1.0.4
+```
+
+第三步，检查生成的差异符合预期后，运行完整测试：
+
+```powershell
+npm test
+```
+
+如果只是拆函数、改名称、整理结构或补注释，不要运行第二条命令，也不要更新算法版本。此时算法测试应保持原有输出完全不变。完整流程和差异检查方法见[开发说明中的“修改评测算法”](./development.md#修改评测算法)。
