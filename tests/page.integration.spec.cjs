@@ -72,3 +72,26 @@ test('页面会完整展示公开评测 interface 返回的结果', async functi
 
   expect(comparison.rendered).toEqual(comparison.expected);
 });
+
+// 页面显示格式是产品输出的一部分：五维固定一位小数，契合度固定整数。
+test('页面会按产品格式显示五维气韵和契合度', async function ({ page }) {
+  await completeAssessment(page, 'A');
+
+  const formats = await page.evaluate(function () {
+    return {
+      profile: Array.from(document.querySelectorAll('.axis .lab i')).map(function (element) {
+        return element.textContent;
+      }),
+      matches: Array.from(document.querySelectorAll('.song .sim b')).map(function (element) {
+        return element.textContent;
+      })
+    };
+  });
+
+  formats.profile.forEach(function (value) {
+    expect(value).toMatch(/^\d+\.\d%$/);
+  });
+  formats.matches.forEach(function (value) {
+    expect(value).toMatch(/^\d+$/);
+  });
+});
