@@ -1,0 +1,80 @@
+<!doctype html>
+<!-- 文件说明：古风气韵评测的内部模拟与歌曲入选分布诊断页面。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>歌曲入选分布 · 古风气韵评测</title>
+  <style>
+    /* 页面使用独立样式，避免诊断工具与正式评测界面互相影响。 */
+    :root{--ink:#26221d;--paper:#f5f0e6;--paper2:#ebe2d1;--red:#8d2d25;--gold:#a77b39;--muted:#71695e}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#e8decc,#f8f4eb 45%,#e9dfcd);color:var(--ink);font-family:"Microsoft YaHei","Noto Serif SC",serif}
+    .page{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:44px 0 72px}.eyebrow{color:var(--red);letter-spacing:.28em;font-size:13px;font-weight:700}
+    h1{font-size:clamp(32px,6vw,58px);margin:8px 0 10px;font-weight:500}h2{font-weight:500;margin:0 0 20px}.lead{max-width:780px;color:var(--muted);line-height:1.8}
+    .panel{background:rgba(255,253,248,.88);border:1px solid rgba(90,71,45,.2);box-shadow:0 18px 60px rgba(68,49,27,.1);padding:24px;margin-top:24px}
+    .controls{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:16px;align-items:end}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px}
+    input,select,button{width:100%;min-height:44px;border:1px solid #b8aa94;background:#fffdf8;color:var(--ink);padding:9px 12px;font:inherit}button{cursor:pointer;background:var(--ink);color:#fff;border-color:var(--ink)}button.secondary{background:transparent;color:var(--ink)}button:disabled{opacity:.4;cursor:not-allowed}.sort-button{width:auto;min-height:0;padding:0;border:0;background:transparent;color:inherit;font-size:inherit;font-weight:700}
+    .progress-row{display:flex;gap:12px;align-items:center;margin-top:18px}progress{width:100%;height:9px;accent-color:var(--red)}#progress-text{width:50px;text-align:right;font-variant-numeric:tabular-nums}#status{min-height:24px;color:var(--muted);margin:10px 0 0}
+    .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}.metric{background:var(--paper);padding:18px;border-left:3px solid var(--gold)}.metric span{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;font-size:24px;margin-top:6px}
+    .layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:24px}.bar-row{display:grid;grid-template-columns:26px 120px 1fr 64px;align-items:center;gap:9px;margin:10px 0;font-size:13px}.rank{color:var(--muted)}.bar-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar-track{height:9px;background:#e5dccd}.bar-track i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--gold))}.bar-row strong{text-align:right;font-variant-numeric:tabular-nums}
+    #profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.axis-card{background:var(--paper);padding:14px}.axis-card h3{margin:0;font-size:15px}.axis-card p{font-size:12px;color:var(--muted)}.histogram{height:76px;display:flex;align-items:end;gap:3px}.histogram i{flex:1;background:var(--gold);min-height:2px}
+    .table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px 9px;border-bottom:1px solid #ddd2c0;text-align:right;white-space:nowrap}th:nth-child(2),td:nth-child(2){text-align:left}thead{position:sticky;top:0;background:#f7f2e8}.zero{color:#9b9185;background:#f2eee7}
+    .notice{padding:12px 14px;background:#f4e9d9;border-left:3px solid var(--red);color:#6a5945;font-size:13px;line-height:1.7;margin-bottom:20px}
+    [hidden]{display:none!important}@media(max-width:850px){.controls,.metrics{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}}@media(max-width:520px){.page{width:min(100% - 20px,1180px);padding-top:25px}.controls,.metrics,#profile-grid{grid-template-columns:1fr}.bar-row{grid-template-columns:22px 95px 1fr 58px}.panel{padding:16px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">古风气韵 · 内部诊断</div>
+    <h1>歌曲入选分布</h1>
+    <p class="lead">使用均匀模拟评测观察当前算法与歌曲参数的覆盖情况。这里展示的是随机答案空间中的抽样频率，不代表真实参与者偏好。</p>
+
+    <section class="panel" aria-label="模拟设置">
+      <div class="controls">
+        <div class="field"><label for="seed">随机种子</label><input id="seed" value="听雨楼"></div>
+        <div class="field"><label for="sample-count">样本数量</label><select id="sample-count"><option value="1000">1,000</option><option value="10000">10,000</option><option value="100000">100,000</option><option value="1000000">1,000,000</option></select></div>
+        <div class="field"><label for="song-source">歌曲参数</label><select id="song-source"><option value="current">当前生效参数</option><option value="original">原始参数</option></select></div>
+        <div class="field"><label>&nbsp;</label><button id="run">开始模拟</button></div>
+      </div>
+      <div class="progress-row"><progress id="progress" max="100" value="0"></progress><span id="progress-text">0%</span><button class="secondary" id="cancel" disabled>取消</button></div>
+      <p id="status">尚未运行。</p>
+      <div class="field"><label for="samples-file">导入 samples.csv，用当前算法重新计算</label><input id="samples-file" type="file" accept=".csv,text/csv"></div>
+    </section>
+
+    <section id="report" hidden>
+      <div class="notice">结果仅用于算法与参数诊断。第一契合率和前五入选率都是抽样频率，不是真实用户概率。</div>
+      <div class="notice" id="snapshot-warning" hidden>歌曲参数已发生变化；这份报告仍使用运行开始时的参数快照。</div>
+      <div class="controls"><button id="export-summary">导出 summary.json</button><button id="export-songs">导出 song-distribution.csv</button><button id="export-samples" disabled>导出 samples.csv</button></div>
+      <div class="metrics">
+        <div class="metric"><span>完成样本</span><strong id="metric-samples">—</strong></div>
+        <div class="metric"><span>算法版本</span><strong id="metric-version">—</strong></div>
+        <div class="metric"><span>参数来源</span><strong id="metric-source">—</strong></div>
+        <div class="metric"><span>第一名并列</span><strong id="metric-first-ties">—</strong></div>
+        <div class="metric"><span>前五边界并列</span><strong id="metric-cutoff-ties">—</strong></div>
+      </div>
+      <div class="layout">
+        <section class="panel"><h2>第一契合率 · 前十五</h2><div id="top-chart"></div></section>
+        <section class="panel"><h2>五维气韵分布</h2><div id="profile-grid"></div></section>
+      </div>
+      <section class="panel"><h2>全部歌曲</h2><div class="table-wrap"><table id="song-table"><thead><tr><th>#</th><th><button class="sort-button" data-sort="name">歌曲</button></th><th><button class="sort-button" id="sort-first" data-sort="firstCount">第一次数</button></th><th><button class="sort-button" data-sort="firstRate">第一契合率</button></th><th><button class="sort-button" data-sort="topFiveCount">前五次数</button></th><th><button class="sort-button" data-sort="topFiveRate">前五入选率</button></th></tr></thead><tbody id="song-table-body"></tbody></table></div></section>
+    </section>
+
+    <section class="panel" aria-label="报告比较">
+      <h2>比较两份模拟汇总报告</h2>
+      <div class="controls">
+        <div class="field"><label for="compare-before">修改前 summary.json</label><input id="compare-before" type="file" accept=".json,application/json"></div>
+        <div class="field"><label for="compare-after">修改后 summary.json</label><input id="compare-after" type="file" accept=".json,application/json"></div>
+      </div>
+      <p id="comparison-status">请选择两份报告。</p>
+      <div id="comparison" hidden>
+        <h3 id="comparison-versions"></h3>
+        <div id="comparison-profiles"></div>
+        <div class="table-wrap"><table id="comparison-songs"><thead><tr><th>歌曲</th><th>第一契合率变化</th><th>前五入选率变化</th></tr></thead><tbody id="comparison-song-body"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+  <script src="data.js"></script>
+  <script src="simulation-artifacts.js"></script>
+  <script src="simulation-page.js"></script>
+</body>
+</html>

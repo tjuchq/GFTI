@@ -5,6 +5,9 @@
 
 const { test, expect } = require('@playwright/test');
 
+// 完整答题会等待十九次页面过渡，给较慢的 CI Runner 留出稳定余量。
+test.setTimeout(60000);
+
 /**
  * 从页面开始一次评测，并为每道题选择指定选项。
  *
@@ -21,20 +24,21 @@ async function completeAssessment(page, optionKey) {
     const counter = page.locator('#counter');
     const counterBefore = await counter.textContent();
 
-    // 手动点击下一题会清理自动跳转计时器，测试无需等待自动前进。
+    // 前十九题只等待页面自己的自动跳转，避免与同一计时器争抢前进动作。
     await page.locator('.opt[data-key="' + optionKey + '"]').click();
-    await page.locator('#btn-next').click();
-
     if (questionIndex < 19) {
       await expect(counter).not.toHaveText(counterBefore);
+    } else {
+      // 末题按产品规则不自动跳转，由用户明确点击查看结果。
+      await page.locator('#btn-next').click();
     }
   }
 
   await expect(page.locator('#scene-result')).toHaveClass(/on/);
 }
 
-// 期望值来自重构前的真实页面，用来阻止算法提取改变线上结果。
-test('固定答案在重构前后得到完全相同的页面结果', async function ({ page }) {
+// 期望值来自算法 1.0.1 的正式基线，用来阻止后续重构悄悄改变页面结果。
+test('固定答案会得到算法 1.0.1 的完整页面结果', async function ({ page }) {
   await completeAssessment(page, 'A');
 
   const renderedResult = await page.evaluate(function () {
@@ -52,13 +56,13 @@ test('固定答案在重构前后得到完全相同的页面结果', async funct
   });
 
   expect(renderedResult).toEqual({
-    profile: [98, 75, 94, 97, 78],
+    profile: [100, 90, 100, 100, 94.8],
     matches: [
-      { name: '龙书龟契', displayPercent: 93 },
-      { name: '风萤月', displayPercent: 63 },
-      { name: '东阳夜怪醉话', displayPercent: 57 },
-      { name: '松烟入墨', displayPercent: 52 },
-      { name: '九九八十一', displayPercent: 41 }
+      { name: '龙书龟契', displayPercent: 100 },
+      { name: '东阳夜怪醉话', displayPercent: 100 },
+      { name: '旷古回响', displayPercent: 78 },
+      { name: '九九八十一', displayPercent: 60 },
+      { name: '永定四十年', displayPercent: 35 }
     ]
   });
 });
