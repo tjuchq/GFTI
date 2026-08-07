@@ -29,53 +29,90 @@ function createAssessmentModule() {
   'use strict';
 
   const AXIS_COUNT = 5;
-  const ALGORITHM_VERSION = '1.0.3';
+  const ALGORITHM_VERSION = '1.1.0';
 
   /* ==========================================================
-   * 参与者五维气韵的逐轴温和拉伸配置
+   * 参与者五维气韵的逐轴软饱和拉伸配置（v1.1.0）
    *
    * 问题背景：原始得分大量聚集在 40~60（古典轴 60~80），
-   *          导致用户向量与歌曲向量距离差异小、区分度差。
+   *          旧版线性拉伸 + clamp 会把两端截断堆积（100 分桶异常高），
+   *          且古典轴 center=70 把整体分布推偏（均值 63）。
    *
-   * 方案：以每轴的「聚集中心」为锚点，将偏差乘以增益系数 gain，
-   *       做温和的线性放大（gain=1.6 表示偏差放大 60%），
-   *       然后 clamp 到 [0, 100]。
-   *       古典轴（index=0）额外加正向偏移 bias，保持"往古典拉"的特性。
+   * 方案：五轴统一 center=50，用 tanh 软饱和替代线性拉伸：
+   *   stretched = center + tanh(((raw - center) / 30) * gain) * amplitude
+   *   amplitude = min(center, 100 - center) = 50
    *
-   * 效果示例（gain=1.6, 其他轴 center=50）：
-   *   原始 30 → 50 + (30-50)*1.6 = 18
-   *   原始 40 → 50 + (40-50)*1.6 = 34
-   *   原始 50 → 50 + 0           = 50（中心不变）
-   *   原始 60 → 50 + (60-50)*1.6 = 66
-   *   原始 70 → 50 + (70-50)*1.6 = 82
+   * 性质：
+   *   - tanh 输出严格在 (-1, 1)，结果严格落在 (0, 100)，永不 clamp、不堆积；
+   *   - S 形映射近似正态 CDF，钟形原始分过一遍后接近均匀分布；
+   *   - 中间区域近似线性（保留区分度），两端自然饱和。
    *
-   * 效果示例（gain=1.6, 古典轴 center=70, bias=6）：
-   *   原始 50 → 70 + (50-70)*1.6 + 6 = 44
-   *   原始 60 → 70 + (60-70)*1.6 + 6 = 60
-   *   原始 70 → 70 + 0 + 6           = 76
-   *   原始 80 → 70 + (80-70)*1.6 + 6 = 92
+   * 效果示例（center=50, gain=2）：
+   *   原始 20 → 50 + tanh(-2)    * 50 ≈ 1.8
+   *   原始 30 → 50 + tanh(-1.33) * 50 ≈ 6.5
+   *   原始 40 → 50 + tanh(-0.67) * 50 ≈ 20.9
+   *   原始 50 → 50
+   *   原始 60 → 50 + tanh(0.67)  * 50 ≈ 79.1
+   *   原始 70 → 50 + tanh(1.33)  * 50 ≈ 93.5
+   *   原始 80 → 50 + tanh(2)     * 50 ≈ 98.2
    * ========================================================== */
   var PARTICIPANT_SPREAD_CONFIG = [
-    { center: 70, gain: 2, bias: -6 },   // 古典：聚集在 70，保留 +6 偏移
-    { center: 50, gain: 2, bias: 0 },   // 旁征博引
-    { center: 50, gain: 2, bias: 0 },   // 含蓄蕴藉
-    { center: 50, gain: 2, bias: 0 },   // 致密沉实
-    { center: 50, gain: 2, bias: 0 }    // 精心构架
+    { center: 50, gain: 2 },   // 古典
+    { center: 50, gain: 2 },   // 旁征博引
+    { center: 50, gain: 2 },   // 含蓄蕴藉
+    { center: 50, gain: 2 },   // 致密沉实
+    { center: 50, gain: 2 }    // 精心构架
   ];
 
+  /* ==========================================================
+   * 古典轴 gamma warp（v1.1.0，替代旧版线性 bias）
+   *
+   * 在拉伸之后，仅对参与者古典轴（index 0）做幂函数 warp，
+   * 把结果微微推向古典一侧，保留"往古典拉"的产品特性。
+   *
+   * 性质：
+   *   - 非线性（幂函数，不是线性加减）；
+   *   - 0 和 100 是不动点，不改变上下限；
+   *   - strength < 1 时整体上推；strength 越接近 1 推力越轻。
+   *
+   * 效果示例（strength=0.8）：
+   *   20  → 100 * 0.2^0.8 ≈ 27.6
+   *   50  → 100 * 0.5^0.8 ≈ 57.4
+   *   80  → 100 * 0.8^0.8 ≈ 83.7
+   *   100 → 100
+   *
+   * 注意：歌曲参数始终保持 data 里的原始数值，不做任何变换；
+   *       距离计算的歌曲一侧永远是原始向量。
+   * ========================================================== */
+  var CLASSICAL_AXIS_INDEX = 0;
+  var CLASSICAL_LEAN_STRENGTH = 0.8;
+
   /**
-   * 对参与者五维气韵做逐轴温和拉伸，增大区分度。
+   * 对参与者五维气韵做逐轴软饱和拉伸，增大区分度且不产生端点堆积。
    *
    * @param {number[]} rawProfile scoreProfile 输出的原始五维值（每轴 0~100）。
-   * @returns {number[]} 拉伸后的五维值，每轴 clamp 到 [0, 100]。
+   * @returns {number[]} 拉伸后的五维值，每轴落在 (0, 100)。
    */
   function spreadParticipantProfile(rawProfile) {
     return rawProfile.map(function (val, i) {
       var cfg = PARTICIPANT_SPREAD_CONFIG[i];
-      var deviation = val - cfg.center;
-      var stretched = cfg.center + deviation * cfg.gain + cfg.bias;
+      var normalized = (val - cfg.center) / 30;
+      var amplitude = Math.min(cfg.center, 100 - cfg.center);
+      var stretched = cfg.center + Math.tanh(normalized * cfg.gain) * amplitude;
       return Math.round(Math.max(0, Math.min(100, stretched)) * 100) / 100;
     });
+  }
+
+  /**
+   * 古典轴 gamma warp：把拉伸后的古典值推向古典一侧。
+   *
+   * @param {number} value 拉伸后的古典轴值（0~100）。
+   * @param {number} strength 幂指数，<1 时往古典侧推；0 与 100 为不动点。
+   * @returns {number} warp 后的值，保留两位小数，仍在 [0, 100]。
+   */
+  function leanClassical(value, strength) {
+    var warped = 100 * Math.pow(value / 100, strength);
+    return Math.round(Math.max(0, Math.min(100, warped)) * 100) / 100;
   }
 
   /**
@@ -104,6 +141,11 @@ function createAssessmentModule() {
 
       var rawProfile = scoreProfile(data.questions, answers);
       var profile = spreadParticipantProfile(rawProfile);
+
+      // 仅参与者古典轴在拉伸后接 gamma warp；歌曲侧保持原始坐标。
+      profile[CLASSICAL_AXIS_INDEX] = leanClassical(
+        profile[CLASSICAL_AXIS_INDEX], CLASSICAL_LEAN_STRENGTH);
+
       var topN = options && options.topN ? options.topN : 5;
 
       // 线上版本先把距离保留两位再排序；这里照旧处理，避免重构改变名次。
@@ -160,8 +202,8 @@ function createAssessmentModule() {
   /**
    * 计算五维气韵与歌曲参数之间的欧氏距离。
    *
-   * @param {number[]} profile 参与者五维气韵（已拉伸）。
-   * @param {number[]} songProfile 歌曲参数（最终坐标，不拉伸）。
+   * @param {number[]} profile 参与者五维气韵（已拉伸 + 古典 warp）。
+   * @param {number[]} songProfile 歌曲参数（data 原始坐标，不拉伸不变换）。
    * @returns {number} 未取整的欧氏距离。
    */
   function calculateDistance(profile, songProfile) {
