@@ -51,9 +51,9 @@
     for (var i = 0; i < 5; i++) r += Math.sqrt(Math.abs(u[i] - s[i]));
     return r;
   }
-  // 相似度 k = e^((15 − R) / 6)，后台保留两位小数
+  // 相似度 k = e^((12 − R) / 8)，后台保留两位小数
   function similarity(R) {
-    return Math.round(Math.exp((15 - R) / 6) * 100 * 100) / 100;
+    return Math.round(Math.exp((12 - R) / 8) * 100 * 100) / 100;
   }
 
   function match(u, topN) {
