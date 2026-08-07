@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>古风TI · 听雨楼雅集</title>
+<meta name="description" content="二十问 · 五维 · 百曲 —— 测一测最契合你气韵的古风曲。">
+<meta name="theme-color" content="#f2e9da">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%239e3d32'/%3E%3Crect x='6' y='6' width='52' height='52' rx='5' fill='none' stroke='%23fbf3e6' stroke-width='2.4' opacity='.55'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='%23fbf3e6' font-family='STKaiti,KaiTi,serif'%3E%E9%9B%85%3C/text%3E%3C/svg%3E">
+<style>
+/* ============ 基础 ============ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --paper:#f2e9da;
+  --paper-2:#eadfcc;
+  --ink:#5a5249;
+  --ink-2:#756c60;
+  --ink-3:#9b9182;
+  --ink-light:#c3b9a9;
+  --seal:#9e3d32;
+  --seal-2:#c04a3c;
+  --line:rgba(90,82,73,.1);
+  --line-2:rgba(90,82,73,.05);
+}
+html,body{height:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Songti SC","STSong","Source Han Serif SC","Noto Serif SC",SimSun,"宋体",serif;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.9;
+}
+/* 宣纸纹理 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(ellipse at 18% 12%,rgba(160,140,110,.16),transparent 46%),
+    radial-gradient(ellipse at 84% 26%,rgba(140,120,95,.13),transparent 42%),
+    radial-gradient(ellipse at 46% 88%,rgba(150,130,100,.14),transparent 50%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+}
+/* 远山 */
+.mountains{position:fixed;left:0;right:0;bottom:0;height:38vh;z-index:0;pointer-events:none;opacity:.4}
+.mountains svg{width:100%;height:100%;display:block}
+
+#app{position:relative;z-index:2;min-height:100%;display:flex;flex-direction:column}
+.scene{display:none;flex:1;flex-direction:column;animation:fadeUp .9s cubic-bezier(.2,.7,.3,1) both}
+.scene.on{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+.wrap{width:100%;max-width:760px;margin:0 auto;padding:0 26px}
+
+/* ============ 首屏 ============ */
+#scene-intro{justify-content:center;align-items:center;text-align:center;padding:56px 0 72px;min-height:100vh}
+.brand-rule{width:1px;height:60px;background:linear-gradient(var(--ink-light),transparent);margin:0 auto 26px}
+.brand{
+  font-size:clamp(30px,7.4vw,50px);letter-spacing:.24em;font-weight:400;
+  font-family:"STKaiti","KaiTi","Kaiti SC",serif;margin-left:.24em;
+}
+.brand small{display:block;font-size:.34em;letter-spacing:.5em;color:var(--ink-3);margin:16px 0 0 .5em;font-family:inherit}
+.brand-line{display:flex;align-items:center;gap:16px;justify-content:center;margin:30px auto 34px;max-width:300px}
+.brand-line i{flex:1;height:1px;background:var(--line)}
+.brand-line b{font-weight:400;font-size:12px;letter-spacing:.4em;color:var(--ink-light);margin-left:.4em}
+
+.story{margin:0 auto;max-width:520px;text-align:left}
+.story p{font-size:16px;line-height:2.5;color:var(--ink-2);margin-bottom:6px;text-indent:2em;letter-spacing:.04em}
+.story .verse{
+  text-indent:0;text-align:center;margin:26px 0;font-size:19px;color:var(--ink);
+  font-family:"STKaiti","KaiTi","Kaiti SC",serif;letter-spacing:.14em;
+}
+.story .hint{text-indent:0;text-align:center;margin-top:30px;font-size:13.5px;color:var(--ink-light);letter-spacing:.1em}
+
+/* 印章按钮 */
+.seal-btn{
+  margin:46px auto 0;width:112px;height:112px;border:none;cursor:pointer;position:relative;
+  background:transparent;display:grid;place-items:center;
+}
+.seal-btn .box{
+  position:absolute;inset:0;background:var(--seal);border-radius:7px;
+  box-shadow:0 6px 22px rgba(158,61,50,.3);
+  transition:transform .35s cubic-bezier(.2,.8,.3,1),box-shadow .35s;
+}
+.seal-btn .box::after{
+  content:"";position:absolute;inset:6px;border:1.5px solid rgba(255,255,255,.42);border-radius:3px;
+}
+.seal-btn span{
+  position:relative;color:#fbf3e6;font-size:27px;letter-spacing:.18em;font-family:"STKaiti","KaiTi",serif;
+  writing-mode:vertical-rl;line-height:1.28;margin-left:.18em;
+}
+.seal-btn:hover .box{transform:scale(1.05) rotate(-1.5deg);box-shadow:0 10px 30px rgba(158,61,50,.42)}
+.seal-btn:active .box{transform:scale(.97)}
+
+/* ============ 答题 ============ */
+#scene-quiz{padding:0 0 60px}
+.qhead{
+  position:sticky;top:0;z-index:6;padding:18px 0 14px;
+  background:linear-gradient(var(--paper) 68%,rgba(242,233,218,0));
+}
+.qhead .row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.counter{font-size:13px;letter-spacing:.16em;color:var(--ink-3);font-family:"STKaiti","KaiTi",serif}
+.counter b{font-size:17px;color:var(--seal);font-weight:400;margin:0 2px}
+.gohome{
+  border:none;background:none;color:var(--ink-light);font-size:12px;letter-spacing:.14em;
+  cursor:pointer;font-family:inherit;padding:4px 2px;
+}
+.gohome:hover{color:var(--seal)}
+.track{margin-top:12px;height:2px;background:var(--line-2);position:relative;overflow:hidden}
+.track i{
+  position:absolute;left:0;top:0;bottom:0;width:0;
+  background:linear-gradient(90deg,var(--ink-light),var(--ink));
+  transition:width .55s cubic-bezier(.3,.8,.3,1);
+}
+
+.qbody{padding-top:26px}
+.qtitle{
+  font-family:"STKaiti","KaiTi","Kaiti SC",serif;font-size:clamp(21px,5vw,27px);
+  letter-spacing:.1em;margin-bottom:16px;
+}
+.qtitle em{font-style:normal;color:var(--seal)}
+.qstem{font-size:15.5px;line-height:2.2;color:var(--ink-2);margin-bottom:28px;letter-spacing:.03em}
+.qstem::after{content:"";display:block;width:44px;height:1px;background:var(--line);margin-top:24px}
+
+.opts{display:flex;flex-direction:column;gap:13px}
+.opt{
+  position:relative;text-align:left;cursor:pointer;font-family:inherit;
+  background:rgba(255,253,247,.62);border:1px solid var(--line);border-radius:2px;
+  padding:17px 20px 17px 50px;font-size:15px;line-height:1.95;color:var(--ink-2);
+  letter-spacing:.02em;transition:.28s cubic-bezier(.2,.8,.3,1);
+}
+.opt::before{
+  content:"";position:absolute;left:20px;top:24px;width:9px;height:9px;border-radius:50%;
+  border:1px solid var(--ink-light);transition:.28s;
+}
+.opt:hover{border-color:var(--ink-light);background:rgba(255,253,247,.95);transform:translateX(3px)}
+.opt.sel{
+  border-color:var(--seal);background:rgba(255,251,244,1);color:var(--ink);
+  box-shadow:0 3px 16px rgba(158,61,50,.09);
+}
+.opt.sel::before{background:var(--seal);border-color:var(--seal);box-shadow:0 0 0 3px rgba(158,61,50,.16)}
+
+.qfoot{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:34px}
+.nav{
+  font-family:inherit;cursor:pointer;background:none;border:1px solid var(--line);
+  padding:11px 26px;font-size:14px;letter-spacing:.16em;color:var(--ink-2);border-radius:2px;
+  transition:.26s;
+}
+.nav:hover:not(:disabled){border-color:var(--ink);color:var(--ink);background:rgba(255,253,247,.7)}
+.nav:disabled{opacity:.26;cursor:not-allowed}
+.nav.primary{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.nav.primary:hover:not(:disabled){background:var(--seal);border-color:var(--seal);color:#fbf3e6}
+.nav.primary:disabled{background:transparent;color:var(--ink-2);border-color:var(--line)}
+
+/* 墨迹晕染过渡 */
+#veil{position:fixed;inset:0;z-index:90;pointer-events:none;opacity:0}
+#veil.run{animation:veil 1s ease-out}
+#veil .blot{position:absolute;border-radius:50%;filter:blur(22px);background:rgba(90,82,73,.2)}
+@keyframes veil{
+  0%{opacity:0}
+  26%{opacity:1}
+  62%{opacity:1}
+  100%{opacity:0}
+}
+#veil.run .blot{animation:blot 1s ease-out}
+@keyframes blot{
+  0%{transform:scale(.1);opacity:0}
+  30%{opacity:.95}
+  100%{transform:scale(3.6);opacity:0}
+}
+
+/* ============ 结果 ============ */
+#scene-result{padding:52px 0 80px}
+.rhead{text-align:center;margin-bottom:8px}
+.rhead .k{font-size:12px;letter-spacing:.5em;color:var(--ink-light);margin-left:.5em}
+.rhead h2{
+  font-family:"STKaiti","KaiTi",serif;font-weight:400;font-size:clamp(25px,6vw,34px);
+  letter-spacing:.18em;margin:14px 0 0 .18em;
+}
+.rhead h2 .en{font-family:"STKaiti","KaiTi",serif;font-size:.94em;letter-spacing:.05em;vertical-align:-.05em}
+.rhead .tagline{
+  margin-top:16px;font-size:14px;color:var(--seal);letter-spacing:.14em;
+  font-family:"STKaiti","KaiTi",serif;
+}
+.sec-t{
+  display:flex;align-items:center;gap:14px;margin:46px 0 24px;
+  font-size:13px;letter-spacing:.34em;color:var(--ink-3);font-family:"STKaiti","KaiTi",serif;
+}
+.sec-t::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.axis{margin-bottom:23px}
+.axis .lab{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:8px;letter-spacing:.06em}
+.axis .lab .l{color:var(--ink)}
+.axis .lab .r{color:var(--ink-light)}
+.axis .lab .l.dim,.axis .lab .r.dim{color:var(--ink-light)}
+.axis .lab .l.hi,.axis .lab .r.hi{color:var(--ink);font-weight:600}
+.axis .lab i{font-style:normal;font-size:12px;opacity:.85;margin-left:6px;letter-spacing:0}
+.bar{height:9px;background:rgba(90,82,73,.05);border-radius:1px;overflow:hidden;position:relative}
+.bar i{
+  position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1px;
+  background:linear-gradient(90deg,#8c8270,#5a5249);
+  transition:width 1.15s cubic-bezier(.22,.9,.28,1);
+}
+.bar .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:rgba(90,82,73,.12)}
+
+.songs{display:flex;flex-direction:column;gap:11px}
+.song{
+  display:flex;align-items:center;gap:16px;padding:15px 18px;
+  background:rgba(255,253,247,.66);border:1px solid var(--line-2);border-radius:2px;
+  animation:fadeUp .7s both;
+}
+.song .rk{
+  flex:none;width:30px;height:30px;display:grid;place-items:center;font-size:14px;
+  font-family:"STKaiti","KaiTi",serif;color:var(--ink-3);border:1px solid var(--line);border-radius:50%;
+}
+.song:first-child .rk{background:var(--seal);border-color:var(--seal);color:#fbf3e6}
+.song .nm{flex:1;font-size:16.5px;letter-spacing:.05em}
+.song .sim{font-size:13px;color:var(--ink-3);letter-spacing:.04em;white-space:nowrap}
+.song .sim b{font-size:19px;color:var(--seal);font-weight:400;font-family:"STKaiti","KaiTi",serif;margin-right:1px}
+
+.disclaim{
+  margin-top:40px;padding:16px 18px;border:1px dashed var(--line);border-radius:2px;
+  font-size:14px;line-height:2;color:var(--ink-3);text-align:center;letter-spacing:.05em;
+}
+.disclaim .em{display:block;margin-top:5px;color:var(--ink-2);font-size:15.5px;font-weight:600;letter-spacing:.06em}
+.acts{display:flex;gap:13px;margin-top:26px;flex-wrap:wrap}
+.acts .nav{flex:1;min-width:135px;text-align:center}
+
+/* 分享卡片弹层 */
+#share{position:fixed;inset:0;z-index:120;display:none;background:rgba(24,20,17,.82);backdrop-filter:blur(4px)}
+#share.on{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;animation:fadeUp .4s both}
+#share canvas{
+  max-width:min(370px,84vw);max-height:70vh;width:auto;height:auto;
+  box-shadow:0 18px 60px rgba(0,0,0,.5);border-radius:3px;
+}
+#share img{
+  display:none;max-width:min(370px,84vw);max-height:70vh;width:auto;height:auto;
+  box-shadow:0 18px 60px rgba(0,0,0,.5);border-radius:3px;
+}
+#share.wx canvas{display:none}
+#share.wx img{display:block}
+#share .tip{color:#d9cdb9;font-size:12.5px;margin-top:18px;letter-spacing:.1em;text-align:center;line-height:2}
+#share .wx-tip{display:none;color:#d9cdb9;font-size:12.5px;margin-top:16px;letter-spacing:.1em;text-align:center;line-height:2}
+#share.wx .tip{display:none}
+#share.wx .wx-tip{display:block}
+#share.wx .btns #sh-save{display:none}
+#share .btns{display:flex;gap:12px;margin-top:16px}
+#share .btns button{
+  font-family:inherit;cursor:pointer;padding:10px 24px;font-size:13.5px;letter-spacing:.16em;
+  border-radius:2px;border:1px solid rgba(230,218,200,.4);background:transparent;color:#e6dac8;transition:.24s;
+}
+#share .btns button.p{background:#e6dac8;color:#2a2521;border-color:#e6dac8}
+#share .btns button:hover{opacity:.82}
+
+/* ============ 后台参数面板 ============ */
+#admin{display:none;padding:30px 0 80px}
+#admin.on{display:block}
+#admin h2{font-family:"STKaiti","KaiTi",serif;font-weight:400;font-size:24px;letter-spacing:.14em}
+#admin .note{font-size:12.5px;color:var(--ink-3);line-height:2;margin:12px 0 20px}
+#admin table{width:100%;border-collapse:collapse;font-size:12.5px}
+#admin th,#admin td{border:1px solid var(--line);padding:5px 6px;text-align:center}
+#admin th{background:rgba(90,82,73,.03);font-weight:400;letter-spacing:.04em;font-size:11.5px}
+#admin td.n{text-align:left;white-space:nowrap;font-size:13px}
+#admin input{
+  width:52px;border:1px solid transparent;background:transparent;text-align:center;
+  font-family:inherit;font-size:12.5px;padding:3px;border-radius:2px;color:var(--ink);
+}
+#admin input:focus{outline:none;border-color:var(--seal);background:#fff}
+#admin input.bad{border-color:var(--seal);background:rgba(192,74,60,.12)}
+#admin .tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;position:sticky;top:0;
+  background:var(--paper);padding:10px 0;z-index:5;border-bottom:1px solid var(--line-2)}
+#admin .msg{font-size:12.5px;color:var(--seal);margin-left:auto;align-self:center}
+
+@media(max-width:520px){
+  .wrap{padding:0 18px}
+  .brand-rule{height:44px;margin:0 auto 18px}
+  .brand{letter-spacing:.18em}
+  .brand small{margin:12px 0 0 .5em}
+  .brand-line{margin:22px auto 26px;max-width:260px}
+  #scene-intro{padding:36px 0 44px}
+  .story p{font-size:14.5px;line-height:2.1;margin-bottom:4px}
+  .story .verse{font-size:17px;margin:18px 0;letter-spacing:.1em}
+  .story .hint{margin-top:22px;font-size:12.5px}
+  .seal-btn{width:96px;height:96px;margin:34px auto 0}
+  .seal-btn span{font-size:23px}
+  #scene-quiz{padding:0 0 44px}
+  .qhead{padding:14px 0 10px}
+  .qtitle{font-size:21px;margin-bottom:12px}
+  .qstem{font-size:14.5px;line-height:2;margin-bottom:20px}
+  .qstem::after{margin-top:18px}
+  .opts{gap:10px}
+  .opt{padding:14px 15px 14px 42px;font-size:14px;line-height:1.85}
+  .opt::before{left:16px;top:20px;width:8px;height:8px}
+  .qfoot{margin-top:24px}
+  .nav{padding:10px 22px;font-size:13.5px}
+  #scene-result{padding:34px 0 56px}
+  .rhead h2{font-size:25px}
+  .sec-t{margin:34px 0 16px;font-size:12.5px}
+  .axis{margin-bottom:18px}
+  .axis .lab{font-size:13px}
+  .song{padding:13px 15px;gap:13px}
+  .song .nm{font-size:15px}
+  .song .rk{width:28px;height:28px;font-size:13px}
+  .disclaim{margin-top:28px;padding:13px 15px;font-size:12px}
+  .acts{margin-top:20px;gap:10px}
+  .acts .nav{min-width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="mountains">
+  <svg viewBox="0 0 1440 400" preserveAspectRatio="none">
+    <path d="M0,300 C120,250 200,290 300,240 C400,190 470,235 560,205 C650,175 720,225 820,195 C930,162 1010,215 1120,185 C1230,155 1330,205 1440,175 L1440,400 L0,400 Z" fill="rgba(90,82,73,.04)"/>
+    <path d="M0,340 C140,305 240,335 360,300 C480,265 560,300 680,278 C800,256 880,296 1010,272 C1140,248 1300,290 1440,262 L1440,400 L0,400 Z" fill="rgba(90,82,73,.028)"/>
+  </svg>
+</div>
+
+<div id="veil"></div>
+
+<div id="app">
+
+  <!-- 幕一 · 缘起 -->
+  <section id="scene-intro" class="scene on">
+    <div class="wrap">
+      <div class="brand-rule"></div>
+      <h1 class="brand">古风TI<small>听 雨 楼 雅 集</small></h1>
+      <div class="brand-line"><i></i><b>二十问 · 五维 · 百曲</b><i></i></div>
+      <div class="story" id="story"></div>
+      <button class="seal-btn" id="btn-start"><span class="box"></span><span>启程</span></button>
+    </div>
+  </section>
+
+  <!-- 幕二 · 问途 -->
+  <section id="scene-quiz" class="scene">
+    <div class="qhead">
+      <div class="wrap">
+        <div class="row">
+          <div class="counter" id="counter"></div>
+          <button class="gohome" id="btn-quit">重新开始</button>
+        </div>
+        <div class="track"><i id="track"></i></div>
+      </div>
+    </div>
+    <div class="wrap qbody">
+      <h2 class="qtitle" id="qtitle"></h2>
+      <p class="qstem" id="qstem"></p>
+      <div class="opts" id="opts"></div>
+      <div class="qfoot">
+        <button class="nav" id="btn-prev">上一题</button>
+        <button class="nav primary" id="btn-next" disabled>下一题</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 幕三 · 曲终 -->
+  <section id="scene-result" class="scene">
+    <div class="wrap">
+      <div class="rhead">
+        <div class="k">曲 已 终</div>
+        <h2>你的古风<span class="en">TI</span></h2>
+        <div class="tagline" id="tagline"></div>
+      </div>
+      <div class="sec-t">五 维 审 美</div>
+      <div id="axes"></div>
+      <div class="sec-t">最 契 合 之 曲</div>
+      <div class="songs" id="songs"></div>
+      <div class="disclaim">
+        本测试基于二十道情境题的五维审美取向，与百首古风曲目的预设参数作相似度匹配。<br>
+        <span class="em">结果仅供娱乐参考，不构成任何审美评判。</span>
+      </div>
+      <div class="acts">
+        <button class="nav primary" id="btn-share">生成分享卡片</button>
+        <button class="nav" id="btn-retry">重新测试</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 后台参数面板 -->
+  <section id="admin">
+    <div class="wrap">
+      <h2>歌曲参数后台</h2>
+      <p class="note">
+        直接修改下表数值（0~100），即时保存在本机浏览器，刷新后依然生效，可用于测试期调参。<br>
+        调好后点「导出 data.js」下载新数据文件，替换项目里的 <code>data.js</code> 即为正式生效。<br>
+        列顺序：古典 / 旁征博引 / 含蓄蕴藉 / 致密沉实 / 精心构架（均为该轴正极方向强度）。
+      </p>
+      <div class="tools">
+        <button class="nav" id="ad-export">导出 data.js</button>
+        <button class="nav" id="ad-reset">还原为原始参数</button>
+        <button class="nav" id="ad-back">返回测试</button>
+        <span class="msg" id="ad-msg"></span>
+      </div>
+      <table id="ad-table"></table>
+    </div>
+  </section>
+
+</div>
+
+<div id="share">
+  <canvas id="card"></canvas>
+  <img id="card-img" alt="古风TI 结果卡片">
+  <div class="btns">
+    <button class="p" id="sh-save">保存图片</button>
+    <button id="sh-close">关闭</button>
+  </div>
+  <div class="tip">若保存无反应，可长按 / 右键图片另存</div>
+  <div class="wx-tip">长按上方图片，在菜单中选择「保存到相册」</div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
