@@ -29,7 +29,7 @@ function createAssessmentModule() {
   'use strict';
 
   const AXIS_COUNT = 5;
-  const ALGORITHM_VERSION = '1.0.0';
+  const ALGORITHM_VERSION = '1.0.1';
 
   /* ==========================================================
    * 逐轴温和拉伸配置

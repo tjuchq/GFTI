@@ -10,7 +10,7 @@ const { createAssessment, algorithmVersion } = require('../assessment.js');
 
 // 统计报告依赖明确的算法身份；只有公式、计分或排序变化时才更新它。
 test('评测 interface 公开稳定的算法版本', function () {
-  assert.equal(algorithmVersion, '1.0.0');
+  assert.equal(algorithmVersion, '1.0.1');
 });
 
 /**
@@ -19,7 +19,7 @@ test('评测 interface 公开稳定的算法版本', function () {
  * @returns {{questions: Array<object>, songs: Array<object>}} 评测所需的题目和歌曲。
  */
 function createWorkedExample() {
-  // 选择 A 后第一维原始得分为 16，开方乘十得到 40；第二维得到 9。
+  // 选择 A 后原始值为 [40,9,0,0,0]，逐轴拉伸并截断后得到 [28,0,0,0,0]。
   return {
     questions: [
       {
@@ -76,14 +76,14 @@ function loadProductionData() {
 }
 
 // 这条 tracer bullet 覆盖完整评测行为，不直接测试内部数学辅助函数。
-test('完整答案会得到五维气韵和带诊断值的契合歌曲', function () {
+test('完整答案会得到逐轴拉伸后的五维气韵和契合歌曲', function () {
   const assessment = createAssessment(createWorkedExample());
 
   assert.deepEqual(assessment.evaluate(['A'], { topN: 2 }), {
-    profile: [40, 9, 0, 0, 0],
+    profile: [28, 0, 0, 0, 0],
     matches: [
       { name: '同调曲', distance: 0, similarity: 100, displayPercent: 100 },
-      { name: '远调曲', distance: 60, similarity: 27.78, displayPercent: 28 }
+      { name: '远调曲', distance: 72, similarity: 19.29, displayPercent: 19 }
     ]
   });
 });
@@ -119,20 +119,20 @@ test('距离舍入后并列的歌曲按名称排序', function () {
   });
 });
 
-// 这组字面量采自重构前的真实页面，距离和相似度也必须逐项相同。
-test('生产数据的固定答案保持重构前完整输出', function () {
+// 这组字面量记录算法 1.0.1 的正式基线，后续重构不能悄悄改变完整结果。
+test('生产数据的固定答案保持算法 1.0.1 完整输出', function () {
   const data = loadProductionData();
   const assessment = createAssessment(data);
   const answers = data.questions.map(function () { return 'A'; });
 
   assert.deepEqual(assessment.evaluate(answers, { topN: 5 }), {
-    profile: [98, 75, 94, 97, 78],
+    profile: [100, 90, 100, 100, 94.8],
     matches: [
-      { name: '龙书龟契', distance: 32.83, similarity: 92.76, displayPercent: 93 },
-      { name: '风萤月', distance: 39.72, similarity: 63.37, displayPercent: 63 },
-      { name: '东阳夜怪醉话', distance: 41.93, similarity: 56.88, displayPercent: 57 },
-      { name: '松烟入墨', distance: 44.02, similarity: 51.6, displayPercent: 52 },
-      { name: '九九八十一', distance: 49.38, similarity: 41.02, displayPercent: 41 }
+      { name: '龙书龟契', distance: 11.45, similarity: 100, displayPercent: 100 },
+      { name: '东阳夜怪醉话', distance: 21.98, similarity: 100, displayPercent: 100 },
+      { name: '旷古回响', distance: 35.82, similarity: 77.94, displayPercent: 78 },
+      { name: '九九八十一', distance: 40.67, similarity: 60.45, displayPercent: 60 },
+      { name: '永定四十年', distance: 53.4, similarity: 35.07, displayPercent: 35 }
     ]
   });
 });
