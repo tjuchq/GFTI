@@ -77,8 +77,8 @@ function createAssessmentModule() {
    *
    *   单调递减，相对排序与距离排序完全一致。
    * ========================================================== */
-  var SIMILARITY_PLATEAU = 31200;
-  var SIMILARITY_DECAY_BASE = 43900;
+  var SIMILARITY_PLATEAU = 3.5;
+  var SIMILARITY_DECAY_BASE = 4.5;
   var SIMILARITY_EXPONENT = 1.2;
 
   /**
@@ -175,20 +175,25 @@ function createAssessmentModule() {
     return profile;
   }
 
-  /**
-   * Lp 距离计算。
-   */
-  function calculateDistance(profile, songProfile) {
-    var powerSum = 0;
-
-    for (var axisIndex = 0; axisIndex < AXIS_COUNT; axisIndex += 1) {
-      var difference = Math.abs(profile[axisIndex] - songProfile[axisIndex]);
-      powerSum += Math.pow(difference, DISTANCE_POWER);
-    }
-
-    return Math.pow(powerSum, 1 / DISTANCE_POWER);
-  }
-
+ /**
+  * Lp 距离计算（v1.5.2 修正）。
+  *
+  * 在内部求和后乘以 0.1 再取 5 次方，最后外部乘 10，
+  * 等价于将原始 Lp(0.2) 距离线性压缩至 1/10000，
+  * 避免数值溢出导致相似度恒为 0。
+  * 相对排序与原始距离完全一致。
+ */
+ function calculateDistance(profile, songProfile) {
+   var powerSum = 0;
+ 
+   for (var axisIndex = 0; axisIndex < AXIS_COUNT; axisIndex += 1) {
+     var difference = Math.abs(profile[axisIndex] - songProfile[axisIndex]);
+     powerSum += Math.pow(difference, DISTANCE_POWER);
+   }
+ 
+   return 10 * Math.pow(powerSum * 0.1, 1 / DISTANCE_POWER);
+ }
+  
   /**
    * 带平台的反比幂律相似度（v1.5.1）。
    *
