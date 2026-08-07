@@ -55,10 +55,11 @@
     return Math.sqrt(r);
   }
 
-  // 相似度 k = 2500 / (R² + 1) ，R=50 时为 100%，随距离增大渐近于 0%
+  // 相似度 k = 2500 / R² ，R=50 时为 100%，随距离增大渐近于 0%
   function similarity(R) {
-    var raw = 2500 / (R * R + 1);
-    return Math.round(raw * 100) / 100;
+    if (R < 0.01) return 100;
+    var raw = 250000 / (R * R);
+    return Math.round(Math.min(raw, 100) * 100) / 100;
   }
 
   function match(u, topN) {
