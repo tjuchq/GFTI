@@ -6,7 +6,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { createAssessment } = require('../assessment.js');
+const { createAssessment, algorithmVersion } = require('../assessment.js');
+
+// 统计报告依赖明确的算法身份；只有公式、计分或排序变化时才更新它。
+test('评测 interface 公开稳定的算法版本', function () {
+  assert.equal(algorithmVersion, '1.0.0');
+});
 
 /**
  * 构造一个能手算结果的小数据集，避免测试重复生产数据里的计算过程。

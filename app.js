@@ -369,8 +369,7 @@
     var payload = {
       axes: D.axes,
       questions: D.questions,
-      songs: SONGS.map(function (s) { return { name: s.name, p: s.p.slice() }; }),
-      selfTest: D.selfTest
+      songs: SONGS.map(function (s) { return { name: s.name, p: s.p.slice() }; })
     };
     var js = '/* ==========================================================\n' +
       ' * 古风TI · 听雨楼雅集 —— 数据文件（后台可直接修改）\n' +

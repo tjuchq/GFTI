@@ -2,9 +2,10 @@
   "name": "gfti",
   "private": true,
   "scripts": {
-    "test": "npm run test:assessment && npm run test:integration",
+    "test": "npm run test:assessment && npm run test:simulation && npm run test:integration",
     "test:assessment": "node --test tests/assessment.test.cjs",
-    "test:integration": "playwright test tests/page.integration.spec.cjs"
+    "test:simulation": "node --test tests/simulation.test.cjs tests/simulation-artifacts.test.cjs",
+    "test:integration": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1"

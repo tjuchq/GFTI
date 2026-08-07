@@ -23,12 +23,13 @@
 /**
  * 组装古风气韵评测 module，并隐藏内部数学实现。
  *
- * @returns {{createAssessment: function(object): object}} 公开 interface。
+ * @returns {{createAssessment: function(object): object, algorithmVersion: string}} 公开 interface。
  */
 function createAssessmentModule() {
   'use strict';
 
   const AXIS_COUNT = 5;
+  const ALGORITHM_VERSION = '1.0.0';
 
 /**
  * 使用题目与歌曲数据创建一次可复用的古风气韵评测。
@@ -135,5 +136,8 @@ function createAssessmentModule() {
     return Math.round(Math.min(rawSimilarity, 100) * 100) / 100;
   }
 
-  return { createAssessment: createAssessment };
+  return {
+    createAssessment: createAssessment,
+    algorithmVersion: ALGORITHM_VERSION
+  };
 });
