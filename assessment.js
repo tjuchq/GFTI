@@ -77,8 +77,8 @@ function createAssessmentModule() {
    *
    *   单调递减，相对排序与距离排序完全一致。
    * ========================================================== */
-  var SIMILARITY_PLATEAU = 30000;
-  var SIMILARITY_DECAY_BASE = 45000;
+  var SIMILARITY_PLATEAU = 10000;
+  var SIMILARITY_DECAY_BASE = 20000;
   var SIMILARITY_EXPONENT = 1.2;
 
   /**
