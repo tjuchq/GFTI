@@ -67,18 +67,10 @@ function createAssessmentModule() {
    *   DECAY_BASE = 43900 → 平台边缘外 43900 处降至 50%
    *   EXPONENT = 1.2     → 衰减陡度
    *
-   *   关键锚点（p=0.2）：
-   *     每轴差  0 → R=0      → 100%
-   *     每轴差  5 → R≈15300  → 100%
-   *     每轴差 10 → R≈31200  → 100%
-   *     每轴差 20 → R≈62400  →  60%
-   *     每轴差 30 → R≈92700  →  37%
-   *     每轴差 50 → R≈160000 →  18%
-   *
    *   单调递减，相对排序与距离排序完全一致。
    * ========================================================== */
-  var SIMILARITY_PLATEAU = 10000;
-  var SIMILARITY_DECAY_BASE = 20000;
+  var SIMILARITY_PLATEAU = 3000;
+  var SIMILARITY_DECAY_BASE = 8000;
   var SIMILARITY_EXPONENT = 1.2;
 
   /**
