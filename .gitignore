@@ -2,6 +2,7 @@
 # /AGENTS.md
 # /CLAUDE.md
 # /docs/agents/
+issue-tracker.local.md
 
 # 本地测试依赖与运行产物。
 /node_modules/
