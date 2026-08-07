@@ -1,10 +1,11 @@
 /* ==========================================================
- * 古风TI · 听雨楼雅集 —— 全部逻辑（纯前端，无后端接口）
+ * 古风TI · 听雨楼雅集 —— 答题流程与页面交互
  * ========================================================== */
 (function () {
   'use strict';
 
   var D = window.GFTI_DATA;
+  var createAssessment = window.GFTIAssessment.createAssessment;
   var $ = function (id) { return document.getElementById(id); };
   var LS_SONGS = 'gfti_songs_override_v1';
 
@@ -26,49 +27,13 @@
   }
   var SONGS = loadSongs();
 
-  /* ---------- 核心算法 ---------- */
-  // 五轴得分：每道题选项的主/副维度分值，直接累加到对应轴的「正极」得分上
-  // 主维度档位 16/11/5/0，副维度档位 9/6/3/0，每轴 4 主 + 4 副 = 满分 100
-  function scoreAxes(answers) {
-    var v = [0, 0, 0, 0, 0];
-    for (var i = 0; i < D.questions.length; i++) {
-      var key = answers[i];
-      if (key == null) continue;
-      var opt = null, opts = D.questions[i].options;
-      for (var j = 0; j < opts.length; j++) if (opts[j].key === key) opt = opts[j];
-      if (!opt) continue;
-      v[opt.mainAxis] += opt.main;
-      v[opt.subAxis] += opt.sub;
-    }
-      // 第一维度：开方 × 10 取整，拉高低分段
-      v[0] = Math.floor(Math.sqrt(v[0]) * 10);
-    return v;
-  }
-
-  // 距离 R = 欧氏距离 √(Σ(Ui − Si)²)
-  function distance(u, s) {
-    var r = 0;
-    for (var i = 0; i < 5; i++) {
-      var d = u[i] - s[i];
-      r += d * d;
-    }
-    return Math.sqrt(r);
-  }
-
-  // 相似度 k = 100000 / R² ，R=50 时为 100%，随距离增大渐近于 0%
-  function similarity(R) {
-    if (R < 0.01) return 100;
-    var raw = 100000 / (R * R);
-    return Math.round(Math.min(raw, 100) * 100) / 100;
-  }
-
-  function match(u, topN) {
-    var list = SONGS.map(function (s) {
-      var R = distance(u, s.p);
-      return { name: s.name, dist: Math.round(R * 100) / 100, sim: similarity(R) };
-    });
-    list.sort(function (a, b) { return a.dist - b.dist || a.name.localeCompare(b.name, 'zh'); });
-    return list.slice(0, topN || 5);
+  /**
+   * 使用当前歌曲参数创建评测，后台修改无需刷新页面。
+   *
+   * @returns {{evaluate: function(Array<string>, object=): object}} 古风气韵评测 interface。
+   */
+  function createCurrentAssessment() {
+    return createAssessment({ questions: D.questions, songs: SONGS });
   }
 
   /* ---------- 状态 ---------- */
@@ -197,8 +162,8 @@
 
   /* ---------- 结果 ---------- */
   function finish() {
-    var u = scoreAxes(state.answers);
-    state.result = { u: u, top: match(u, 5) };
+    var result = createCurrentAssessment().evaluate(state.answers, { topN: 5 });
+    state.result = { u: result.profile, top: result.matches };
     inkTransition(function () { show('scene-result'); renderResult(); });
   }
 
@@ -232,8 +197,7 @@
       var d = document.createElement('div');
       d.className = 'song';
       d.style.animationDelay = (0.5 + i * 0.1) + 's';
-      // 大于 100% 的按 100% 展示；展示保留整数
-      var showSim = Math.min(100, Math.round(s.sim));
+      var showSim = s.displayPercent;
       d.innerHTML = '<div class="rk">' + CN[i] + '</div>' +
                     '<div class="nm">' + s.name + '</div>' +
                     '<div class="sim">契合 <b>' + showSim + '</b>%</div>';
@@ -335,7 +299,7 @@
       c.fillText(s.name, L + 46, yy);
 
       c.textAlign = 'right';
-      var pct = Math.min(100, Math.round(s.sim));
+      var pct = s.displayPercent;
       c.font = '13px ' + serif; c.fillStyle = '#9b9182';
       c.fillText('%', L + RW, yy);
       c.font = '25px ' + kai; c.fillStyle = '#9e3d32';
@@ -483,40 +447,4 @@
     renderAdmin();
   }
 
-  /* 内测自检：index.html?selftest=1 —— 用 Excel 示例向量校验匹配结果 */
-  if (qs.get('selftest') === '1') {
-    var u = D.selfTest.userVector;
-    var got = match(u, 5).map(function (s) { return s.name; });
-    var pass = got.join('|') === D.selfTest.top5.join('|');
-    var detail = match(u, 5).map(function (s) {
-      return s.name + ' 距离' + s.dist.toFixed(2) + ' 相似度' + s.sim.toFixed(2) + '%';
-    });
-    // 单轴极值：逐轴构造「把该轴推到极限」的作答，验证轴满分 100 / 最低 0
-    function contrib(opt, ax) {
-      return (opt.mainAxis === ax ? opt.main : 0) + (opt.subAxis === ax ? opt.sub : 0);
-    }
-    function extreme(ax, wantMax) {
-      var ans = D.questions.map(function (q) {
-        return q.options.slice().sort(function (a, b) {
-          return wantMax ? contrib(b, ax) - contrib(a, ax) : contrib(a, ax) - contrib(b, ax);
-        })[0].key;
-      });
-      return scoreAxes(ans)[ax];
-    }
-    var axisMax = D.axes.map(function (_, i) { return extreme(i, true); });
-    var axisMin = D.axes.map(function (_, i) { return extreme(i, false); });
-
-    window.__GFTI_SELFTEST__ = {
-      pass: pass, expect: D.selfTest.top5, got: got, detail: detail,
-      axisMax: axisMax, axisMin: axisMin,
-      songCount: SONGS.length, questionCount: D.questions.length
-    };
-    console.log('[GFTI selftest]', window.__GFTI_SELFTEST__);
-  }
-
-  // 暴露给外部调试 / 后台二次开发
-  window.GFTI = {
-    scoreAxes: scoreAxes, distance: distance, similarity: similarity,
-    match: match, songs: function () { return SONGS; }, state: state
-  };
 })();

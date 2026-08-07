@@ -2,3 +2,8 @@
 /AGENTS.md
 /CLAUDE.md
 /docs/agents/
+
+# 本地测试依赖与运行产物。
+/node_modules/
+/test-results/
+/playwright-report/
