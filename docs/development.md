@@ -154,14 +154,23 @@ const result = assessment.evaluate(answers, { topN: 5 });
 
 ## GitHub Pages 部署
 
-项目是静态文件，GitHub Pages 应发布仓库根目录中的 HTML 和 JavaScript。部署后确认下面两个地址都能访问：
+Pages 不直接发布仓库根目录。推送到 `main` 后，[`deploy-pages.yml`](../.github/workflows/deploy-pages.yml) 会运行完整测试，生成白名单发布包，再部署正式评测页面。
 
 ```text
 <Pages 根地址>/index.html
-<Pages 根地址>/simulation.html
 ```
 
-如果普通评测正常而模拟页无反应，先在浏览器开发者工具中检查 `simulation-worker.js`、`assessment.js` 和 `simulation.js` 是否返回 404。部署路径区分大小写。
+`<Pages 根地址>/simulation.html` 应返回 404，这是有意设置的发布边界。模拟诊断页继续通过本地服务器访问。
+
+第一次部署前，在仓库 `Settings → Pages → Build and deployment` 中把来源设为 `GitHub Actions`。之后可以推送 `main` 自动部署，也可以在 Actions 页面手动运行“测试并部署 GitHub Pages”。
+
+本地检查发布包：
+
+```powershell
+npm run build:pages
+```
+
+结果写入 `dist-pages/`，该目录已被 Git 忽略。若目录已有文件，脚本会停止，避免覆盖不明内容；检查完成后可以手动清空该目录再重新生成。
 
 ## 常见问题
 

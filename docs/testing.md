@@ -88,6 +88,18 @@ Playwright 会启动本地静态服务器，然后用真实 Chromium 点击页�
 
 浏览器测试固定使用一个 worker，避免多个测试同时争用端口或让大样本测试相互影响。
 
+### Pages 发布包测试
+
+命令：
+
+```powershell
+npm run test:pages
+```
+
+文件：[`tests/pages-build.test.cjs`](../tests/pages-build.test.cjs)
+
+这项测试通过公开的打包命令生成临时站点，确认发布包只包含正式评测文件，并确认首页没有指向 `simulation.html` 的入口。它防止测试页面因新增文件或调整工作流而意外公开。
+
 ## 本地测试服务器
 
 测试服务器监听：

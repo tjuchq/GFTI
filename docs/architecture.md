@@ -124,6 +124,12 @@ GitHub Pages 本身使用 HTTPS，不受这个问题影响。
 
 相关决定见 [`ADR-0001`](./adr/0001-versioned-simulation-artifacts.md)。
 
+## GitHub Pages 发布边界
+
+仓库内容不等于公开网站内容。`scripts/build-pages.cjs` 按白名单生成 `dist-pages`，GitHub Actions 只部署这个目录。正式网站包含普通评测所需的四个源文件，不包含模拟诊断、测试和开发文档。
+
+发布包的边界由 `tests/pages-build.test.cjs` 锁定。新增正式资源时必须先修改这项测试，再更新打包脚本。设计决定见 [`ADR-0002`](./adr/0002-publish-production-pages-only.md)。
+
 ## 修改时必须守住的边界
 
 - `assessment.js` 不读取页面、浏览器存储或随机数。

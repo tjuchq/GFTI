@@ -2,10 +2,12 @@
   "name": "gfti",
   "private": true,
   "scripts": {
-    "test": "npm run test:assessment && npm run test:simulation && npm run test:integration",
+    "test": "npm run test:assessment && npm run test:simulation && npm run test:pages && npm run test:integration",
     "test:assessment": "node --test tests/assessment.test.cjs",
     "test:simulation": "node --test tests/simulation.test.cjs tests/simulation-artifacts.test.cjs",
-    "test:integration": "playwright test"
+    "test:pages": "node --test tests/pages-build.test.cjs",
+    "test:integration": "playwright test",
+    "build:pages": "node scripts/build-pages.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1"
