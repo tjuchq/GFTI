@@ -57,11 +57,11 @@ function createAssessmentModule() {
    *   原始 80 → 50 + tanh(2)     * 50 ≈ 98.2
    * ========================================================== */
   var PARTICIPANT_SPREAD_CONFIG = [
-    { center: 70, gain: 1.5 },   // 古典
-    { center: 50, gain: 1.5 },   // 旁征博引
-    { center: 50, gain: 1.5 },   // 含蓄蕴藉
-    { center: 50, gain: 1.5 },   // 致密沉实
-    { center: 50, gain: 1.5 }    // 精心构架
+    { center: 70, gain: 2 },   // 古典
+    { center: 50, gain: 1.6 },   // 旁征博引
+    { center: 50, gain: 1.6 },   // 含蓄蕴藉
+    { center: 50, gain: 1.6 },   // 致密沉实
+    { center: 50, gain: 1.6 }    // 精心构架
   ];
 
   /* ==========================================================
