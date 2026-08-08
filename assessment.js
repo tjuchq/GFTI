@@ -69,9 +69,9 @@ function createAssessmentModule() {
    *
    *   单调递减，相对排序与距离排序完全一致。
    * ========================================================== */
-  var SIMILARITY_PLATEAU = 20000;
-  var SIMILARITY_DECAY_BASE = 40000;
-  var SIMILARITY_EXPONENT = 1.2;
+  var SIMILARITY_PLATEAU = 15000;
+  var SIMILARITY_DECAY_BASE = 25000;
+  var SIMILARITY_EXPONENT = 1.5;
 
   /**
    * 对参与者五维气韵做逐轴软饱和拉伸。
