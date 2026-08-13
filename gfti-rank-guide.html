@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>听雨楼雅集 · 答题攻略计算器</title>
+<style>
+  :root{
+    --paper:#f2e9da; --ink:#2a2521; --dim:#7a6f62; --cinnabar:#9e3d32; --gold:#b08968;
+    --card:#fbf6ec; --line:rgba(42,37,33,.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 15% 10%, rgba(160,140,110,.16), transparent 55%),
+      radial-gradient(ellipse at 85% 85%, rgba(150,130,100,.14), transparent 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Songti SC","STSong","Source Han Serif SC","SimSun",serif;
+    min-height:100vh; padding:24px 14px 60px;
+  }
+  .wrap{max-width:1060px; margin:0 auto;}
+  header{text-align:center; margin:10px 0 26px;}
+  header h1{
+    font-family:"STKaiti","KaiTi","Kaiti SC",serif;
+    font-weight:normal; font-size:clamp(26px,4.6vw,38px); letter-spacing:.14em;
+  }
+  header h1 b{color:var(--cinnabar); font-weight:normal;}
+  header .seal{
+    display:inline-block; background:var(--cinnabar); color:#fbf3e6;
+    font-family:"STKaiti","KaiTi",serif; font-size:12px; letter-spacing:.2em;
+    padding:5px 12px; margin-top:8px; border-radius:3px;
+  }
+  header .sub{color:var(--dim); margin-top:12px; font-size:14px; line-height:1.8;}
+  /* 搜索区 */
+  .search{
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    box-shadow:0 2px 10px rgba(80,60,40,.06);
+  }
+  .search input{
+    flex:1 1 260px; min-width:200px; padding:11px 14px; font-size:16px;
+    border:1px solid var(--line); border-radius:8px; background:#fffdf7; color:var(--ink);
+    font-family:inherit; outline:none;
+  }
+  .search input:focus{border-color:var(--cinnabar);}
+  .search button{
+    padding:11px 26px; font-size:16px; letter-spacing:.3em; cursor:pointer;
+    background:var(--ink); color:var(--paper); border:none; border-radius:8px;
+    font-family:"STKaiti","KaiTi",serif;
+  }
+  .search button:hover{background:var(--cinnabar);}
+  .search .hint{flex-basis:100%; color:var(--dim); font-size:12.5px;}
+  /* 结果 */
+  #result{display:none; margin-top:22px;}
+  #result.on{display:block;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:18px 20px; margin-bottom:16px; box-shadow:0 2px 10px rgba(80,60,40,.05);
+  }
+  .card h3{
+    font-family:"STKaiti","KaiTi",serif; font-weight:normal; letter-spacing:.18em;
+    font-size:18px; margin-bottom:12px; color:var(--ink);
+    border-left:4px solid var(--cinnabar); padding-left:10px;
+  }
+  /* 横幅 */
+  #banner{
+    text-align:center; padding:22px 16px; margin-bottom:16px;
+    background:linear-gradient(135deg,#f4ecdf,#ece0cd); border:1px solid var(--line);
+    border-radius:10px;
+  }
+  #banner .song{font-family:"STKaiti","KaiTi",serif; font-size:clamp(22px,3.6vw,30px); letter-spacing:.08em;}
+  #banner .rank{
+    margin-top:10px; font-size:clamp(18px,3vw,24px); color:var(--dim);
+  }
+  #banner .rank b{color:var(--cinnabar); font-size:1.35em; margin:0 4px;}
+  #banner .stamp{
+    display:inline-block; margin-top:12px; padding:6px 18px; font-size:15px;
+    font-family:"STKaiti","KaiTi",serif; letter-spacing:.4em; color:#fbf3e6;
+    background:var(--cinnabar); border-radius:4px;
+  }
+  #banner .meta{color:var(--dim); font-size:13px; margin-top:10px;}
+  /* 两栏 */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:760px){ .grid2{grid-template-columns:1fr;} }
+  canvas#radar{width:100%; max-width:430px; display:block; margin:0 auto;}
+  #radarWrap{position:relative;}
+  .tip{
+    position:absolute; z-index:20; pointer-events:none;
+    background:rgba(42,37,33,.94); color:#f2e9da; border-radius:6px;
+    padding:8px 11px; font-size:12.5px; line-height:1.85; white-space:nowrap;
+    box-shadow:0 3px 10px rgba(0,0,0,.25);
+  }
+  .tip b{color:#f0c9a8;}
+  .tip .hi{color:#ffb199;}
+  .tip .lo{color:#b8a7e8;}
+  .tip.hidden{display:none;}
+  .radarhint{color:#a1968a; font-size:12px; text-align:center; margin-top:8px;}
+  /* 排名榜 */
+  #rankList{list-style:none;}
+  #rankList li{
+    position:relative;
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px;
+    border-bottom:1px dashed var(--line);
+  }
+  .liTip{
+    display:none; position:absolute; left:8px; top:calc(100% + 8px); z-index:40;
+    background:rgba(42,37,33,.96); color:#f2e9da; border-radius:8px; padding:10px 13px;
+    font-size:12.5px; line-height:1.8; min-width:252px; box-shadow:0 5px 16px rgba(0,0,0,.32);
+  }
+  #rankList li:hover .liTip{display:block;}
+  .liTip .tt{font-family:"STKaiti","KaiTi",serif; font-size:15px; color:#f0c9a8; margin-bottom:5px; letter-spacing:.05em;}
+  .liTip .tr{display:flex; flex-wrap:wrap; gap:4px 12px;}
+  .liTip .tr span{display:inline-flex; gap:4px; color:#cfc4b4;}
+  .liTip .tr i{font-style:normal; color:#fff; font-weight:bold;}
+  .liTip .tm{margin-top:6px; padding-top:6px; border-top:1px dashed rgba(242,233,218,.25); color:#a1968a;}
+  #rankList li.cmp{cursor:pointer; transition:background .15s;}
+  #rankList li.cmp:hover{background:#f0e8da;}
+  #rankList li.me{background:#f3e4d4; border:1px solid rgba(158,61,50,.35); cursor:pointer;}
+  #rankList li.me:hover{background:#f0dfcc;}
+  #rankList .rk{font-family:"STKaiti","KaiTi",serif; color:var(--dim); width:26px; text-align:center;}
+  #rankList li:nth-child(1) .rk{color:var(--cinnabar); font-size:20px;}
+  #rankList .nm{flex:1; font-size:15.5px;}
+  #rankList .dt{color:var(--dim); font-size:12.5px; width:56px; text-align:right;}
+  #rankList .sm{color:var(--cinnabar); font-size:13px; width:auto; min-width:74px; text-align:right;}
+  /* 方案 */
+  .plan-head{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .plan-head h3{flex:1; margin-bottom:0;}
+  .plan-head button{
+    padding:8px 16px; cursor:pointer; font-family:"STKaiti","KaiTi",serif; font-size:14px;
+    background:#fff; border:1px solid var(--line); border-radius:7px; color:var(--ink);
+  }
+  .plan-head button:hover{border-color:var(--cinnabar); color:var(--cinnabar);}
+  .plan-head span{color:var(--dim); font-size:13px;}
+  /* 方案列表：全部登顶方案可点选 */
+  #planList{margin-top:12px;}
+  .planitem{
+    border:1px solid var(--line); border-radius:8px; padding:9px 13px; margin-top:8px;
+    background:#fffdf7; cursor:pointer;
+  }
+  .planitem:hover{border-color:rgba(158,61,50,.45);}
+  .planitem.sel{border:1.5px solid var(--cinnabar); background:#f8ece0; box-shadow:0 2px 8px rgba(158,61,50,.12);}
+  .pi-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .pi-no{font-family:"STKaiti","KaiTi",serif; color:var(--cinnabar); font-size:14.5px;}
+  .pi-tags em{
+    font-style:normal; font-size:11.5px; color:#fbf3e6; background:var(--cinnabar);
+    border-radius:3px; padding:1px 6px; margin-right:4px;
+  }
+  .pi-tags em.best{background:#a97c50; box-shadow:inset 0 0 0 1px rgba(251,243,230,.35);}
+  .pi-check{margin-left:auto; color:var(--cinnabar); font-size:12.5px;}
+  .pi-fit{color:var(--gold); font-size:12.5px;}
+  .pi-fit b{color:#a97c50; font-size:14px;}
+  .pi-axes{display:flex; flex-wrap:wrap; gap:3px 12px; margin-top:6px; font-size:12.5px; color:var(--dim);}
+  .pi-axes span{display:inline-flex; gap:3px;}
+  .pi-axes b{color:var(--ink);}
+  .pi-total{margin-left:auto; color:var(--dim);}
+  .pi-total b{color:var(--cinnabar);}
+  .planMore{text-align:center; margin-top:10px;}
+  .planMore button{
+    padding:7px 18px; font-size:13px; cursor:pointer; color:var(--dim);
+    background:transparent; border:1px dashed var(--line); border-radius:16px; font-family:inherit;
+  }
+  .planMore button:hover{border-color:var(--cinnabar); color:var(--cinnabar);}
+  /* ---- 过渡动画（纯 CSS，轻量） ---- */
+  @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+  header{animation:fadeUp .5s ease both;}
+  .search{animation:fadeUp .5s .1s ease both;}
+  #boot{animation:fadeUp .5s ease both;}
+  #result.on #banner{animation:fadeUp .45s ease both;}
+  #result.on .card{animation:fadeUp .45s ease both;}
+  #result.on .card:nth-of-type(2){animation-delay:.06s;}
+  #result.on .card:nth-of-type(3){animation-delay:.12s;}
+  .card{transition:box-shadow .25s ease, transform .25s ease;}
+  .card:hover{transform:translateY(-2px); box-shadow:0 6px 18px rgba(80,60,40,.1);}
+  .planitem{transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;}
+  .rec-chip,.rec-more,#btnReupdate,#btnSolve,#btnUpdate{transition:all .2s ease;}
+  /* ---- 方案筛选按钮 ---- */
+  .planfilters{display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;}
+  .pf-btn{
+    padding:5px 12px; font-size:12.5px; cursor:pointer; color:var(--dim);
+    background:#fff; border:1px solid var(--line); border-radius:14px; font-family:inherit;
+    transition:all .2s ease;
+  }
+  .pf-btn:hover{border-color:var(--cinnabar); color:var(--cinnabar);}
+  .pf-btn.on{background:var(--cinnabar); color:#fbf3e6; border-color:var(--cinnabar);}
+  .pf-btn.onfit{background:#a97c50; color:#fbf3e6; border-color:#a97c50;}
+  /* ---- 屏幕兼容性 ---- */
+  #rankList .nm{overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+  .planrow{flex-wrap:wrap;}
+  .liTip{max-width:calc(100vw - 44px);}
+  @media(max-width:520px){
+    .bootCard{padding:24px 18px;}
+    #rankList .dt{display:none;}
+    .plan-head span{width:100%;}
+    header .sub{font-size:13px;}
+    .warn{font-size:12px;}
+  }
+  @media(max-width:360px){
+    .search input{min-width:0; flex-basis:100%;}
+    #btnSolve{width:100%;}
+  }
+  /* 答题方案：1~20 紧凑列表 */
+  .planrow{
+    display:flex; align-items:center; gap:10px; padding:9px 13px;
+    border:1px solid var(--line); border-radius:8px; margin-top:8px;
+    background:#fffdf7; cursor:default;
+  }
+  .planrow:hover{border-color:rgba(158,61,50,.4);}
+  .planrow .rowno{font-family:"STKaiti","KaiTi",serif; color:var(--cinnabar); font-size:15px; min-width:34px;}
+  .planrow .rowtitle{flex:1; font-size:14px; letter-spacing:.03em;}
+  .planrow .rowpick{
+    font-size:13.5px; color:var(--ink); max-width:52%;
+    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  .planrow .rowpick b{color:var(--cinnabar); font-family:"STKaiti","KaiTi",serif;}
+  .warn{
+    background:#faf0e6; border:1px solid rgba(176,137,104,.55); color:#7a5c3a;
+    border-radius:8px; padding:10px 14px; font-size:13px; line-height:1.9; margin-top:10px;
+  }
+  .warn b{color:var(--cinnabar);}
+  footer{text-align:center; color:#a1968a; font-size:12.5px; margin-top:30px; line-height:2;}
+  .dstamp{
+    text-align:center; color:#a1968a; font-size:12px; margin-top:24px; line-height:1.9;
+  }
+  .dstamp b{color:var(--cinnabar);}
+  .hidden{display:none!important;}
+  /* 更新数据门面 */
+  .boot{display:flex; justify-content:center; padding:26px 0 8px;}
+  .bootCard{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:34px 30px; max-width:520px; width:100%; text-align:center;
+    box-shadow:0 3px 14px rgba(80,60,40,.08);
+  }
+  .bootCard h2{font-family:"STKaiti","KaiTi",serif; font-weight:normal; letter-spacing:.1em; font-size:22px; margin-bottom:14px;}
+  .bootCard p{color:var(--dim); font-size:14px; line-height:1.9; margin-bottom:22px;}
+  #btnUpdate{
+    padding:14px 42px; font-size:17px; letter-spacing:.35em; cursor:pointer;
+    background:var(--cinnabar); color:#fbf3e6; border:none; border-radius:9px;
+    font-family:"STKaiti","KaiTi",serif; box-shadow:0 3px 10px rgba(158,61,50,.25);
+  }
+  #btnUpdate:hover{background:#8a342a;}
+  #btnUpdate:disabled{background:#b79a8f; cursor:default; box-shadow:none;}
+  #btnUseBuiltin{
+    padding:10px 22px; margin-top:14px; cursor:pointer; font-size:13.5px;
+    background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--dim);
+    font-family:inherit;
+  }
+  #btnUseBuiltin:hover{border-color:var(--cinnabar); color:var(--cinnabar);}
+  .bootMsg{color:var(--dim); font-size:13.5px; margin-top:16px; line-height:1.9;}
+  .bootMsg b{color:var(--cinnabar);}
+  .bootVer{color:#a1968a; font-size:12px; margin-top:18px;}
+  #btnReupdate{
+    padding:8px 16px; cursor:pointer; font-family:"STKaiti","KaiTi",serif; font-size:13.5px;
+    background:#fff; border:1px solid var(--line); border-radius:7px; color:var(--dim);
+  }
+  #btnReupdate:hover{border-color:var(--cinnabar); color:var(--cinnabar);}
+  .rowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; width:100%;}
+  .rowline .hint{flex:1; flex-basis:auto; margin:0;}
+  /* 随机推荐 */
+  .recs{display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%; margin-top:4px;}
+  .rec-title{color:var(--dim); font-size:12.5px;}
+  .rec-chip{
+    padding:6px 14px; font-size:13px; cursor:pointer;
+    background:#fff; border:1px solid var(--line); border-radius:16px; color:var(--ink);
+    font-family:inherit;
+  }
+  .rec-chip:hover{border-color:var(--cinnabar); color:var(--cinnabar); background:#fdf3e7;}
+  .rec-more{
+    padding:5px 14px; font-size:12.5px; cursor:pointer; color:var(--cinnabar);
+    background:#fff; border:1.5px solid var(--cinnabar); border-radius:15px;
+    font-family:inherit; margin-left:auto; transition:all .2s ease;
+  }
+  .rec-more:hover{background:var(--cinnabar); color:#fbf3e6;}
+  .footline{text-align:center; margin-top:14px;}
+  .mini-btn{
+    padding:7px 18px; font-size:12.5px; cursor:pointer; color:var(--cinnabar);
+    background:transparent; border:1px solid rgba(158,61,50,.45); border-radius:15px;
+    font-family:inherit; transition:all .2s ease;
+  }
+  .mini-btn:hover{background:var(--cinnabar); color:#fbf3e6;}
+  .mini-sel{
+    padding:7px 10px; font-size:12.5px; cursor:pointer; color:var(--cinnabar);
+    background:#fff; border:1px solid rgba(158,61,50,.45); border-radius:15px; font-family:inherit;
+    max-width:280px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>听雨楼雅集 · <b>答题攻略</b></h1>
+  <span class="seal">贰拾问 · 五维 · 百曲</span>
+  <p class="sub">先更新数据，再开始求解。</p>
+</header>
+
+<div id="boot" class="boot">
+  <div class="bootCard">
+    <h2>先更新数据，再开始求解</h2>
+    <p>题库、选项与歌曲参数可能已更新。<br>为确保结果使用最新数据，请先获取一次。</p>
+    <button id="btnUpdate">更 新 数 据</button>
+    <div id="bootMsg" class="bootMsg"></div>
+    <button id="btnUseBuiltin" class="hidden">使用内置历史数据继续</button>
+    <div id="bootVer" class="bootVer"></div>
+  </div>
+</div>
+
+<section class="search hidden" id="mainUI">
+  <input id="songInput" list="songList" placeholder="输入或选择歌名，如「风萤月」…" autocomplete="off">
+  <datalist id="songList"></datalist>
+  <button id="btnSolve">求 解</button>
+  <div class="rowline">
+    <div class="hint" id="searchHint"></div>
+  </div>
+  <div class="recs" id="recs"><span class="rec-title">随便试试：</span><button class="rec-more" id="recMore">换一批 ↻</button></div>
+  <div class="warn" id="warnBox" style="display:none"></div>
+</section>
+
+<section id="result">
+  <div id="banner"></div>
+  <div class="grid2">
+    <div class="card">
+      <h3>五维对照</h3>
+      <div id="radarWrap">
+        <canvas id="radar" width="860" height="520"></canvas>
+        <div id="tip" class="tip hidden"></div>
+      </div>
+      <p class="radarhint">把鼠标移到轴上可查看各维度数值；点选右侧榜单歌曲可叠加对比</p>
+    </div>
+    <div class="card">
+      <h3>最终排名 · 前十</h3>
+      <ul id="rankList"></ul>
+      <p class="radarhint">点击任意歌曲，在左侧五维图中叠加其参数与你的作答对比</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="plan-head">
+      <h3>答题方案</h3>
+      <span id="planCount"></span>
+    </div>
+    <div class="planfilters" id="planFilters"></div>
+    <div id="planList"></div>
+    <div id="qCards"></div>
+  </div>
+  </div>
+</section>
+
+<div id="dataStamp" class="dstamp"></div>
+<div id="algoStamp" class="dstamp"></div>
+<div class="footline">
+  <button id="btnReupdate" class="mini-btn">↻ 更新数据</button>
+</div>
+<footer>听雨楼雅集 · 答题攻略计算器　·　仅供娱乐参考</footer>
+</div>
+
+<script>
+window.GFTI_DATA = {"axes":[{"pos":"古典","neg":"现代"},{"pos":"旁征博引","neg":"通俗晓畅"},{"pos":"含蓄蕴藉","neg":"直抒胸臆"},{"pos":"致密沉实","neg":"空灵飘逸"},{"pos":"精心构架","neg":"行云流水"}],"questions":[{"no":"壹","title":"一纸相邀","stem":"那封信躺在你案上。收信这一晚，你是怎么准备这趟行程的？","options":[{"key":"A","text":"净手，焚香，把信端端正正列在案上，郑重其事地拜了两拜才开始打算","mainAxis":4,"main":11,"subAxis":0,"sub":9},{"key":"B","text":"铺开纸，把要备的物事、要走的驿路，一条一条列下来","mainAxis":4,"main":16,"subAxis":0,"sub":3},{"key":"C","text":"把琴、发簪和几件换洗衣裳塞进包袱，打了个结，完事","mainAxis":4,"main":5,"subAxis":0,"sub":6},{"key":"D","text":"信收进怀里，吹灯睡觉，明天走到哪步算哪步","mainAxis":4,"main":0,"subAxis":0,"sub":0}]},{"no":"贰","title":"收拾行囊","stem":"你要收拾行囊了。这趟远门，你的包袱里最要紧的是——","options":[{"key":"A","text":"一部《广韵》、几卷残谱、一册前人琴论，路上好对照着读","mainAxis":1,"main":16,"subAxis":4,"sub":6},{"key":"B","text":"一本记各地风物传说的杂记，不算正典，倒也广博","mainAxis":1,"main":11,"subAxis":4,"sub":3},{"key":"C","text":"一壶酒、几块干粮、一把短剑、若干杂物，一应俱全","mainAxis":1,"main":5,"subAxis":4,"sub":9},{"key":"D","text":"只带够银钱，缺什么路上再说，轻装上路最自在","mainAxis":1,"main":0,"subAxis":4,"sub":0}]},{"no":"叁","title":"渡江寻舟","stem":"你来到渡口，要乘船渡江。江边泊着几条船，你选了——","options":[{"key":"A","text":"一艘乌篷的渡船，船身厚重，舷边刻着历代船帮的名号与旧例","mainAxis":3,"main":16,"subAxis":1,"sub":6},{"key":"B","text":"一条旧画舫，挂着褪色的幡。你坐在舱里，读船板上刻的前朝题句","mainAxis":3,"main":11,"subAxis":1,"sub":9},{"key":"C","text":"你闭眼任船走，静听水声哗哗，船叫什么、多久抵达，你都没细问","mainAxis":3,"main":5,"subAxis":1,"sub":0},{"key":"D","text":"一叶轻舟，顺流而下，船夫哼着不成调的小调，水雾漫上来，船像飘于仙境","mainAxis":3,"main":0,"subAxis":1,"sub":3}]},{"no":"肆","title":"渡船逢问","stem":"渡船行至江心，一位同船旅客向你搭话：“看你不像经商赶考的，独自远行，是因何事？”","options":[{"key":"A","text":"你望着江面，半晌，轻声道：“听闻有一曲未终，想前去一闻。”","mainAxis":2,"main":16,"subAxis":0,"sub":9},{"key":"B","text":"你微微一笑，只说：“去赴一场旧约。”再问，便不答了","mainAxis":2,"main":11,"subAxis":0,"sub":0},{"key":"C","text":"你大笑：“我也不知道为什么，就是想去！人生得意须尽欢嘛！”","mainAxis":2,"main":5,"subAxis":0,"sub":6},{"key":"D","text":"你想了想，坦然道：”有人请我去听雨楼论琴，我便去了。”","mainAxis":2,"main":0,"subAxis":0,"sub":3}]},{"no":"伍","title":"江心再问","stem":"那旅客听你答了，心生好奇：“那是什么约，什么曲？”你——","options":[{"key":"A","text":"你只说了半句：“这曲子，当年是弹给一个人的……”便住了口","mainAxis":2,"main":16,"subAxis":1,"sub":3},{"key":"B","text":"你想了想，简述了信的来历，并详述了古曲来由","mainAxis":2,"main":5,"subAxis":1,"sub":9},{"key":"C","text":"你笑道：“也没什么，有人喊我去弹琴，我就去弹。”","mainAxis":2,"main":11,"subAxis":1,"sub":0},{"key":"D","text":"你大笑：“就是想去凑个热闹！百年一遇，错过多可惜！”继而同旅客侃天论地","mainAxis":2,"main":0,"subAxis":1,"sub":6}]},{"no":"陆","title":"对岸寻路","stem":"船靠了岸。你踏上青石埠头，眼前是陌生的渡口小镇。往听雨楼去的路，你打算怎么找？","options":[{"key":"A","text":"你记起信中提过一条前朝官道，便沿途寻那旧日的里程碑石","mainAxis":0,"main":16,"subAxis":1,"sub":6},{"key":"B","text":"你展开信末附的那幅旧舆图，按图上的古驿站名一段段核过去","mainAxis":0,"main":5,"subAxis":1,"sub":9},{"key":"C","text":"你估了估日头的方位，拣最宽的那条道走，心想大路总不会错","mainAxis":0,"main":11,"subAxis":1,"sub":3},{"key":"D","text":"你拦住一个挑担的农人：“去听雨楼，走哪条道？”","mainAxis":0,"main":0,"subAxis":1,"sub":0}]},{"no":"柒","title":"岔道残碑","stem":"走了半日，路分三岔。岔口立着一块残碑，字迹漫漶。你——","options":[{"key":"A","text":"你蹲下来，把能辨认的几个字拼在一起，又对着舆图上的水系走向反复比勘，拿定主意","mainAxis":1,"main":11,"subAxis":3,"sub":9},{"key":"B","text":"你很快认出碑上刻着“左通青崖、右入白蘋”，你认得这两个地名，便拣了左边","mainAxis":1,"main":16,"subAxis":3,"sub":3},{"key":"C","text":"你读了半天没读通，索性不读了，凭感觉选了条看着顺眼的","mainAxis":1,"main":0,"subAxis":3,"sub":6},{"key":"D","text":"你大致认得碑刻但懒得细看，哪条路走的人多就拐哪条","mainAxis":1,"main":5,"subAxis":3,"sub":0}]},{"no":"捌","title":"山道逢雨","stem":"午后忽然落了雨。你在崖檐下避雨，身旁也躲着个背药篓的老妇。她看你背着琴，便问：“后生，是去听雨楼的？”你——","options":[{"key":"A","text":"你依着旧礼拱手一揖，答：“晚辈赴听雨楼之约，途经此地。”说罢垂手静立，不多言","mainAxis":0,"main":16,"subAxis":2,"sub":6},{"key":"B","text":"你只说了个“是”字，便转头看雨，再没接话","mainAxis":0,"main":5,"subAxis":2,"sub":9},{"key":"C","text":"你点头，同她聊了几句，讲起信中那行字的来由，又问她认不认得近路","mainAxis":0,"main":11,"subAxis":2,"sub":0},{"key":"D","text":"你笑道：“是啊，头一回去！您给指指路呗？”顺嘴同她攀了几句","mainAxis":0,"main":0,"subAxis":2,"sub":3}]},{"no":"玖","title":"四条山路","stem":"雨歇了。眼前有四条路通往听雨楼所在的山谷——","options":[{"key":"A","text":"前朝官道。青石板上车辙深深，道旁立着历代旅人的题咏碑","mainAxis":0,"main":16,"subAxis":3,"sub":9},{"key":"B","text":"山间石阶。旧是旧，但每块石头都被岁月磨得温润扎实","mainAxis":0,"main":11,"subAxis":3,"sub":6},{"key":"C","text":"你不走现成的路，沿着山脊的轮廓随意走，风往哪儿吹你往哪儿去","mainAxis":0,"main":5,"subAxis":3,"sub":0},{"key":"D","text":"溪涧边的野径。水雾还没散尽，走起来轻飘飘的，像踩在云上","mainAxis":0,"main":0,"subAxis":3,"sub":3}]},{"no":"拾","title":"半山浓雾","stem":"行至半山，浓雾忽然涌上来，三步外便看不见人了。你——","options":[{"key":"A","text":"你找到一处石亭，亭柱上刻着前人的纪年与题字，你抚过那些刻痕，觉得安稳","mainAxis":3,"main":16,"subAxis":0,"sub":6},{"key":"B","text":"你摸到一座旧祠，半掩在苔藓里。你读着墙上斑驳的修葺碑记，靠厚实的墙坐下","mainAxis":3,"main":11,"subAxis":0,"sub":9},{"key":"C","text":"你在一棵古松下铺开斗笠，闭眼任雾漫过肩头","mainAxis":3,"main":5,"subAxis":0,"sub":3},{"key":"D","text":"你索性不避了，在雾里缓步走，天地白茫茫，像一幅没画完的画","mainAxis":3,"main":0,"subAxis":0,"sub":0}]},{"no":"拾壹","title":"小镇夜宿","stem":"雾散时你已到了一座小镇。天将黑，你得在此歇一晚。这一夜你打算怎么过？","options":[{"key":"A","text":"你投了家老客栈，进房后净手、焚香，静坐思索片刻后安寝","mainAxis":0,"main":16,"subAxis":4,"sub":6},{"key":"B","text":"你找了家干净客栈住下，在灯下把明日要走的路线细细排了一遍","mainAxis":0,"main":5,"subAxis":4,"sub":9},{"key":"C","text":"你在镇口老槐树底下铺了块布，枕着琴囊就睡了，走到哪算哪","mainAxis":0,"main":11,"subAxis":4,"sub":0},{"key":"D","text":"你随意走进一家还亮着灯的小店，和店主聊了几句，他指了个房间，你便歇下","mainAxis":0,"main":0,"subAxis":4,"sub":3}]},{"no":"拾贰","title":"竹亭问路","stem":"次日清晨，镇外竹林边一座小亭里，一位白发老者正在抚琴。你听完一曲，他邀你坐。你问他听雨楼的事。他——","options":[{"key":"A","text":"他讲了几段旧事，夹着些典故，末了说：“你去了便知。有些曲子，是弹给不在的人听的。”","mainAxis":1,"main":11,"subAxis":2,"sub":9},{"key":"B","text":"他从《乐府诗集》讲到《太古遗音》，又引了三位前人的不同记载，末了才缓缓道：“去青崖，寻一个姓沈的老者。”","mainAxis":1,"main":16,"subAxis":2,"sub":3},{"key":"C","text":"他拍拍你肩膀：“一直往北走，到了自然就懂了！”","mainAxis":1,"main":0,"subAxis":2,"sub":6},{"key":"D","text":"他直截了当：“往北三十里，青崖底下有个姓沈的老头，你问他便是。”","mainAxis":1,"main":5,"subAxis":2,"sub":0}]},{"no":"拾叁","title":"崖壁残刻","stem":"你到了青崖。崖壁千仞，壁间刻着密密麻麻的文字，像是乐谱的残篇。你——","options":[{"key":"A","text":"你逐字辨认，发现化用了《乐记》的句子，杂糅数家琴派指法，你边读边在心里对照各家注本","mainAxis":1,"main":16,"subAxis":0,"sub":9},{"key":"B","text":"你仔细研读，虽有些典故不通晓，但看得出是一套完整的指法体系，条理严密","mainAxis":1,"main":11,"subAxis":0,"sub":6},{"key":"C","text":"你没细读，只远远看着那些字在崖壁上若隐若现，像一首读不懂的诗，反而更美","mainAxis":1,"main":5,"subAxis":0,"sub":0},{"key":"D","text":"读了几行觉得晦涩，便跳过去，只仔细品味最后几行像结论的话","mainAxis":1,"main":0,"subAxis":0,"sub":3}]},{"no":"拾肆","title":"灯下录谱","stem":"你在崖下找到了沈老人。他答应帮你，从箱底取出一卷泛黄绢帛——听雨楼曲谱的序篇。你借了一夜，打算把内容留下来。你——","options":[{"key":"A","text":"你取纸笔按“引、序、谱、跋”重新誊录，每段标注出处，理清脉络，一丝不乱","mainAxis":4,"main":16,"subAxis":1,"sub":6},{"key":"B","text":"你默默按原样抄好，只在要紧处点一笔","mainAxis":4,"main":11,"subAxis":1,"sub":3},{"key":"C","text":"你没有抄。反复读几遍，合上眼在心里把旋律过一遍，念出声来又核对了一遍，很快烂熟于心","mainAxis":4,"main":0,"subAxis":1,"sub":9},{"key":"D","text":"你只记了几个要紧的词和大意，觉得到时候看着弹弹就行","mainAxis":4,"main":5,"subAxis":1,"sub":0}]},{"no":"拾伍","title":"月下独弹","stem":"在沈老人处的第一夜，你睡不着，取琴前往崖边。月色如水，山谷寂静。你弹的是——","options":[{"key":"A","text":"一首极慢的曲子，每个音都像藏在雾里，不诉说什么，只让情绪在弦上慢慢洇开","mainAxis":2,"main":16,"subAxis":3,"sub":6},{"key":"B","text":"一首小曲，克制、内敛，像隔着纱看旧事，厚重却不张扬","mainAxis":2,"main":11,"subAxis":3,"sub":9},{"key":"C","text":"你随手拨弦，音符空灵飘逸，像蒲公英一样散开，你对着月亮说了句：“今晚真好。”","mainAxis":2,"main":5,"subAxis":3,"sub":0},{"key":"D","text":"一段即兴的调子，轻快明亮，像月光在溪面上跳跃。你一边弹一边笑出声","mainAxis":2,"main":0,"subAxis":3,"sub":3}]},{"no":"拾陆","title":"空谷应声","stem":"琴声未歇，山谷里忽然传来另一段琴，和你的旋律绞在一起。崖下溪涧边坐着个黑影。你——","options":[{"key":"A","text":"你屏息听清他每一个音，辨他的调式指法，再以一段沉稳的低音相和","mainAxis":3,"main":16,"subAxis":2,"sub":6},{"key":"B","text":"你不急着应，先静静听完，在心里记下他旋律的走向，再缓缓接上","mainAxis":3,"main":11,"subAxis":2,"sub":9},{"key":"C","text":"你懒得细究，顺着他的旋律即兴接上去，像两个人随口聊天","mainAxis":3,"main":5,"subAxis":2,"sub":3},{"key":"D","text":"你朝崖下喊了声“好曲子”，然后不管不顾，弹了首最痛快的","mainAxis":3,"main":0,"subAxis":2,"sub":0}]},{"no":"拾柒","title":"晨起辞行","stem":"次日清晨，你收拾好琴囊，准备辞别沈老人，往听雨楼去。临行前——","options":[{"key":"A","text":"你什么也没留。走到门口，回头朝沈老人的方向深深一揖，没出声。路嘛，顺着水走就是","mainAxis":2,"main":16,"subAxis":4,"sub":3},{"key":"B","text":"你在案上留了一张字条，只写六个字：“承教，后会有期。”一笔一划都斟酌过。然后你按昨夜想好的路线，沿溪往北走","mainAxis":2,"main":11,"subAxis":4,"sub":6},{"key":"C","text":"你大步走到沈老人跟前，抱拳道：“沈老，多谢！我必不虚此行！”说罢展开昨夜画好的路线图，按图出发","mainAxis":2,"main":5,"subAxis":4,"sub":9},{"key":"D","text":"你朝屋里喊了声“走了！”，把琴往背上一背，推门而去。往哪边走？看见哪条道顺眼就走哪条","mainAxis":2,"main":0,"subAxis":4,"sub":0}]},{"no":"拾捌","title":"石桥望楼","stem":"走了大半日，终于远远望见听雨楼。楼建在悬崖上，云雾缭绕，七层飞檐如翼。楼前一道石桥，桥栏上刻满了密密麻麻的文字与乐谱残句。你——","options":[{"key":"A","text":"你放慢脚步，逐字读桥栏上的刻文，发现它们按年代排列，从篆书到行楷，是一部完整的听雨楼史。你一段段读完才过桥","mainAxis":3,"main":16,"subAxis":4,"sub":9},{"key":"B","text":"你踏上石桥，边走边看那些刻文，只觉脚下是云、眼前是雾","mainAxis":3,"main":11,"subAxis":4,"sub":3},{"key":"C","text":"你随意瞥了几眼，注意到刻文之间似有呼应，在心里默默记下几处关键的联系","mainAxis":3,"main":5,"subAxis":4,"sub":6},{"key":"D","text":"你没看那些刻文，张开双臂跑过石桥，风灌满衣袖，你喊了声：\"听雨楼，我到了！\"","mainAxis":3,"main":0,"subAxis":4,"sub":0}]},{"no":"拾玖","title":"且听君奏","stem":"你走进听雨楼。楼中乐师已集，各自调弦试音。白发主持人宣：“百年之约已至，请诸位各奏所携之曲，终合为一。”轮到你。你坐下，取琴——","options":[{"key":"A","text":"你深吸一口气，从第一个音起，严格按自己定下的曲式走：散音起引，慢板加吟猱，快板以滚拂推进，尾声收在一个极轻的泛音上","mainAxis":4,"main":16,"subAxis":3,"sub":9},{"key":"B","text":"你闭上眼，弹的是这一路的完整画面——雾、渡口、月下、崖边的对话","mainAxis":4,"main":11,"subAxis":3,"sub":3},{"key":"C","text":"你按昨夜想好的大致框架弹，有几处即兴，但起承转合分明","mainAxis":4,"main":5,"subAxis":3,"sub":6},{"key":"D","text":"你什么都没想，随手一弹。一个音带出下一个音，像溪水自己找到下山的路。弹完你也不确定弹了什么，只觉得——对了","mainAxis":4,"main":0,"subAxis":3,"sub":0}]},{"no":"贰拾","title":"一曲终了","stem":"一曲终了。满堂寂静，最后一个泛音在梁间悬了很久，才散。主持人没有说话，只是缓缓点了点头。你——","options":[{"key":"A","text":"你按着旧礼将琴收入囊中，向四方各拱一拱手，然后独自走到楼边，凭栏听雨，一言不发","mainAxis":4,"main":11,"subAxis":2,"sub":9},{"key":"B","text":"你慢慢将琴弦一根根松下来，擦净，归囊。然后朝各位道谢，转身离去","mainAxis":4,"main":16,"subAxis":2,"sub":3},{"key":"C","text":"你没有收琴，只是坐在那里，让最后一点余韵自己消散。然后你笑了，对旁边的人说：“走吧，喝酒去。”","mainAxis":4,"main":0,"subAxis":2,"sub":6},{"key":"D","text":"你站起身，朝满堂乐师抱拳一笑，大声道：“痛快！”背起琴，大步流星走了出去","mainAxis":4,"main":5,"subAxis":2,"sub":0}]}],"songs":[{"name":"风萤月","p":[90,80,100,100,40]},{"name":"龙书龟契","p":[90,100,80,90,90]},{"name":"松烟入墨","p":[80,40,90,90,60]},{"name":"九九八十一","p":[80,90,60,70,80]},{"name":"旷古回响","p":[90,100,90,60,100]},{"name":"暗香梦","p":[100,100,80,30,70]},{"name":"东阳夜怪醉话","p":[80,70,80,70,100]},{"name":"一半勾留","p":[60,80,30,90,90]},{"name":"陌上花早","p":[80,40,80,60,80]},{"name":"长亭外","p":[60,80,40,90,60]},{"name":"是风动","p":[60,70,30,100,70]},{"name":"春笺","p":[80,80,90,20,30]},{"name":"夜奔","p":[100,100,10,60,80]},{"name":"永定四十年","p":[80,50,60,80,90]},{"name":"人在千古","p":[90,90,70,20,60]},{"name":"丹心鉴","p":[90,80,40,30,60]},{"name":"人间应又雪","p":[90,80,30,40,60]},{"name":"临安雨","p":[80,70,60,40,70]},{"name":"借月留光","p":[90,100,60,40,90]},{"name":"秦淮河边的陈年往事","p":[70,60,90,10,70]},{"name":"秋水","p":[70,90,100,80,20]},{"name":"楚歌起","p":[80,70,30,70,90]},{"name":"湖光水色调","p":[70,50,100,90,30]},{"name":"吾宁爱与憎","p":[50,80,60,60,100]},{"name":"清浪滩上","p":[40,30,50,100,80]},{"name":"痴痴言外","p":[90,80,80,10,0]},{"name":"放鹤亭","p":[90,90,50,60,30]},{"name":"流光记","p":[70,80,80,30,20]},{"name":"故事外的人","p":[80,90,50,20,70]},{"name":"织风者","p":[90,60,60,30,60]},{"name":"青耕","p":[70,70,10,70,70]},{"name":"思华年","p":[80,90,70,60,10]},{"name":"春日迟","p":[70,30,60,80,60]},{"name":"远方","p":[80,30,50,70,90]},{"name":"归去来","p":[50,80,10,30,80]},{"name":"不见长安","p":[60,60,40,40,80]},{"name":"古旧人间","p":[80,70,50,10,60]},{"name":"山止川行","p":[70,80,20,10,90]},{"name":"白马入芦花","p":[80,70,30,80,10]},{"name":"人间不值得","p":[70,70,0,30,80]},{"name":"腐草为萤","p":[50,10,100,90,40]},{"name":"风起天阑","p":[70,20,30,80,70]},{"name":"冠世一战","p":[70,90,10,50,60]},{"name":"晚来客","p":[70,40,0,60,80]},{"name":"细雨湿流光","p":[70,50,90,30,10]},{"name":"传说下班后","p":[70,90,10,20,70]},{"name":"敢归云间宿","p":[80,60,10,50,60]},{"name":"隐","p":[80,60,70,40,10]},{"name":"风雨河","p":[80,80,30,30,0]},{"name":"谈杯","p":[80,60,20,70,20]},{"name":"天上掉下个林妹妹","p":[90,90,30,0,30]},{"name":"繁华唱遍","p":[70,30,50,20,70]},{"name":"社戏","p":[50,30,80,30,50]},{"name":"杏花弦外雨","p":[70,30,70,40,30]},{"name":"如是我闻·月见篇","p":[50,20,50,50,90]},{"name":"明月如霜","p":[50,30,40,60,60]},{"name":"千秋此意","p":[80,50,20,30,50]},{"name":"第三十八年夏至","p":[70,20,30,40,90]},{"name":"泸沽寻梦","p":[60,10,80,40,30]},{"name":"天知河","p":[20,10,40,70,70]},{"name":"时人闻野鹤","p":[60,80,0,40,0]},{"name":"琉璃","p":[20,20,90,60,0]},{"name":"终不还","p":[60,10,10,30,80]},{"name":"无会期","p":[60,30,40,70,20]},{"name":"云山尽处","p":[80,40,20,50,20]},{"name":"四风判词","p":[50,10,40,0,80]},{"name":"老酒街","p":[40,20,20,60,60]},{"name":"黑白小巷","p":[40,20,70,50,20]},{"name":"棠梨煎雪","p":[60,0,60,40,40]},{"name":"青州从事","p":[70,50,20,40,20]},{"name":"烟笼长安","p":[60,20,40,10,60]},{"name":"再见月光","p":[50,30,30,30,100]},{"name":"寻常歌","p":[50,20,20,40,60]},{"name":"天欲雪","p":[60,30,60,20,20]},{"name":"伶仃谣","p":[60,20,0,40,60]},{"name":"我若是游子","p":[20,10,70,50,30]},{"name":"绿豆糕般的童年","p":[30,10,80,40,10]},{"name":"焦骨","p":[40,20,40,80,0]},{"name":"临川浮梦","p":[80,40,10,0,40]},{"name":"李贵杨","p":[20,0,10,60,70]},{"name":"飞光骤","p":[60,30,70,10,0]},{"name":"海棠酒满","p":[60,20,10,60,30]},{"name":"不老梦","p":[70,40,10,20,30]},{"name":"石楠小札","p":[20,10,60,60,20]},{"name":"少年与春天树","p":[30,10,10,40,90]},{"name":"大山","p":[10,0,100,50,0]},{"name":"琴师","p":[50,0,20,40,40]},{"name":"寸缕","p":[30,10,20,60,30]},{"name":"饮中八仙spirits","p":[30,70,10,20,0]},{"name":"罚酒饮得","p":[50,20,0,30,40]},{"name":"春山外史","p":[60,10,0,50,10]},{"name":"醒世文章","p":[50,30,40,0,10]},{"name":"过月亮","p":[30,10,10,10,40]},{"name":"天命风流","p":[50,10,10,0,0]},{"name":"致陌生的你","p":[0,0,0,10,50]},{"name":"寸心笑傲","p":[50,0,10,0,0]},{"name":"幸而世人无慧眼","p":[10,0,30,10,10]},{"name":"无人诗","p":[20,10,0,10,20]},{"name":"若某日我封笔","p":[10,0,0,30,0]},{"name":"白鸟过河滩","p":[0,0,0,20,10]}]};
+</script>
+
+<script>
+(function(){
+'use strict';
+var DATA_URLS = [
+  'https://tjuchq.github.io/GFTI/data.js',
+  'https://lucent-blini-ae09e0.netlify.app/data.js'
+  /* 如需增加数据源，在此追加即可 */
+];
+var BUILTIN_STAMP = '2026-08-13 · 官方快照 b12bc0fc';
+var BUILTIN_ALGO = 'spreadtanh70:2.25|warp0.75|song0.8|dist-lp0.2|sim-plat15000:25000:1.5';
+var BUILTIN_DATA = window.GFTI_DATA;
+var D=null, AXES=null, QS=null, SONGS=null, SONG_P=[], NQ=0, NS=0, NAX=0, INCS=[], AXNAME=[], AXNAME_R=[], ATTRS=[], OFF_ENGINE=null;
+function initData(data){
+  D=data;
+  AXES=D.axes; QS=D.questions; SONGS=D.songs;
+  NQ=QS.length; NS=SONGS.length; NAX=AXES.length;
+  INCS=QS.map(function(q){ return q.options.map(function(o){
+    var d=new Array(NAX).fill(0); d[o.mainAxis]+=o.main; d[o.subAxis]+=o.sub; return d;
+  });});
+  AXNAME=AXES.map(function(a){return a.pos;});
+  AXNAME_R=AXES.map(function(a){return a.neg;});
+  ATTRS=[];
+  for(var a=0;a<NAX;a++){
+    ATTRS.push({a:a, side:0, name:AXNAME[a]});
+    ATTRS.push({a:a, side:1, name:AXNAME_R[a]});
+  }
+}
+if(!BUILTIN_DATA){ document.getElementById('searchHint').textContent = '数据加载失败'; return; }
+/* ---------- 当前官方算法（v1.5.1：参与者 tanh拉伸+古典warp / 歌曲压缩 / Lp0.2 / 平台幂律） ---------- */
+var CUR_ALGO={
+  label:'tanh拉伸+古典warp · 歌曲压缩 · Lp0.2 · 平台幂律',
+  t0:function(x){ return Math.floor(Math.sqrt(x)*10); },
+  /* 参与者侧：tanh 拉伸（古典 center70/gain2.25，其余 50/1.6）+ 古典轴 gamma warp ^0.75 */
+  part:function(prof){
+    var CFG=[[70,2.25],[50,1.6],[50,1.6],[50,1.6],[50,1.6]];
+    var w=prof.map(function(v,i){
+      var c=CFG[i][0], g=CFG[i][1];
+      return Math.round(Math.max(0,Math.min(100,50+Math.tanh((v-c)/30*g)*50))*100)/100;
+    });
+    w[0]=Math.round(Math.max(0,Math.min(100,100*Math.pow(w[0]/100,0.75)))*100)/100;
+    return w;
+  },
+  /* 歌曲侧：以 50 为中心的对称线性压缩 ×0.8 */
+  song:function(p){
+    return p.map(function(v){ return Math.round((50+(v-50)*0.8)*100)/100; });
+  },
+  /* Lp 距离 p=0.2 + 防溢出缩放（v1.5.2）：100000*(Σ|Δ|^0.2*0.1)^(1/0.2) */
+  d:function(u,p){
+    var s=0;
+    for(var a=0;a<NAX;a++) s+=Math.pow(Math.abs(u[a]-p[a]),0.2);
+    return 100000*Math.pow(s*0.1, 1/0.2);
+  },
+  /* 带平台反比幂律相似度（v1.5.1 参数已更新）：R≤15000→100；否则 100/(1+((R-15000)/25000)^1.5) */
+  s:function(R){
+    if(R<=15000) return 100;
+    return Math.round((100/(1+Math.pow((R-15000)/25000,1.5)))*100)/100;
+  }
+};
+/* 歌曲参数：按当前公式变换（v1.4.1 为对称压缩），比较/展示统一用 SONG_P */
+function refreshSongP(){
+  var st=CUR_ALGO.song;
+  SONG_P=SONGS.map(function(s){ return st ? st(s.p.slice()) : s.p.slice(); });
+}
+initData(BUILTIN_DATA);
+document.getElementById('bootVer').textContent = '内置数据版本：' + BUILTIN_STAMP;
+function scoreVec(ans){ var v=new Array(NAX).fill(0); for(var i=0;i<NQ;i++){ var d=INCS[i][ans[i]]; for(var a=0;a<NAX;a++) v[a]+=d[a]; } v[0]=CUR_ALGO.t0(v[0]); v=CUR_ALGO.part(v); return v; }
+function dist(u,p){ return CUR_ALGO.d(u,p); }
+function simOf(R){ return CUR_ALGO.s(R); }
+function r2(x){ return Math.round(x*100)/100; }
+function rankedList(u){
+  var list=SONG_P.map(function(p,i){ var R=dist(u,p); return {name:SONGS[i].name, dist:Math.round(R*100)/100, sim:simOf(R)}; });
+  list.sort(function(a,b){ return a.dist-b.dist || a.name.localeCompare(b.name,'zh'); });
+  return list;
+}
+function rankOf(u, name){
+  var L=rankedList(u);
+  for(var i=0;i<L.length;i++) if(L[i].name===name) return i+1;
+  return NS;
+}
+/* 官方引擎：用线上 assessment.js 实时计算榜单（距离/契合度/排序与官网一致） */
+function officialList(ansIdx){
+  if(!OFF_ENGINE) return null;
+  try{
+    var keys=[];
+    for(var i=0;i<NQ;i++) keys.push(QS[i].options[ansIdx[i]].key);
+    var eng=OFF_ENGINE.createAssessment({questions:D.questions, songs:D.songs});
+    var r=eng.evaluate(keys, {topN: NS});
+    return r.matches.map(function(m){ return {name:m.name, dist:m.distance, sim:m.similarity}; });
+  }catch(e){ return null; }
+}
+
+/* ---------- Phase 1：启发式（贪心 + 代理距离局部搜索） ---------- */
+function phase1(songName, tries, iters, maxPlans){
+  var si=-1; for(var i=0;i<NS;i++) if(SONGS[i].name===songName){ si=i; break; }
+  if(si<0) return {plans:[], fallback:null};
+  var ps=SONG_P[si];
+  var plans=[], seen={}, fallback=null;
+  /* 评估：原始向量 v + 选项增量 d 后（当前公式的第一轴变换+拉伸+距离）到 ps 的距离 */
+  function ev(v, d){
+    var w=new Array(NAX); for(var a=0;a<NAX;a++) w[a]=v[a]+d[a];
+    w[0]=CUR_ALGO.t0(w[0]);
+    w=CUR_ALGO.part(w);
+    return CUR_ALGO.d(w, ps);
+  }
+  for(var tr=0;tr<tries;tr++){
+    var ans=new Array(NQ).fill(0);
+    var order=[]; for(var i=0;i<NQ;i++) order.push(i);
+    for(var i=NQ-1;i>0;i--){ var j=(Math.random()*(i+1))|0; var tp=order[i]; order[i]=order[j]; order[j]=tp; }
+    var v=new Array(NAX).fill(0);
+    for(var oi=0;oi<NQ;oi++){
+      var t=order[oi], bd=null, bk=0, nopt=INCS[t].length, base=ev(v,[0,0,0,0,0]);
+      for(var k=0;k<nopt;k++){
+        var dd=ev(v, INCS[t][k]) - base;
+        if(bd===null || dd<bd){ bd=dd; bk=k; }
+      }
+      ans[t]=bk; var d=INCS[t][bk]; for(var a=0;a<NAX;a++) v[a]+=d[a];
+    }
+    var cur=dist(scoreVec(ans), ps);
+    for(var it=0;it<iters;it++){
+      var t=(Math.random()*NQ)|0, k0=ans[t], k1=(Math.random()*INCS[t].length)|0;
+      if(k1===k0) continue;
+      var ans2=ans.slice(); ans2[t]=k1;
+      var d2=dist(scoreVec(ans2), ps);
+      if(d2<cur*(1-1e-9)){ ans=ans2; cur=d2; }
+    }
+    var u=scoreVec(ans);
+    var r=rankOf(u, songName);
+    if(r===1){
+      var key=ans.join('');
+      if(!seen[key]){ seen[key]=1; plans.push({ans:ans.slice(), u:u.slice()}); if(plans.length>=maxPlans) break; }
+    } else if(fallback===null || r<fallback.rank){
+      fallback={ans:ans.slice(), u:u.slice(), rank:r};
+    }
+  }
+  return {plans:plans, fallback:fallback};
+}
+
+/* ---------- Phase 2：模拟退火（兜底，目标=排名） ---------- */
+function phase2(songName, budgetMs){
+  var si=-1; for(var i=0;i<NS;i++) if(SONGS[i].name===songName){ si=i; break; }
+  var t0=Date.now();
+  var bestRank=NS+1, bestAns=null;
+  while(Date.now()-t0<budgetMs){
+    var ans=new Array(NQ).fill(0);
+    for(var i=0;i<NQ;i++) ans[i]=(Math.random()*INCS[i].length)|0;
+    var u=scoreVec(ans);
+    var cur=rankOf(u, songName);
+    var T=4.0;
+    while(Date.now()-t0<budgetMs){
+      var t=(Math.random()*NQ)|0, k0=ans[t], k1=(Math.random()*INCS[t].length)|0;
+      if(k1===k0) continue;
+      var ans2=ans.slice(); ans2[t]=k1;
+      var u2=scoreVec(ans2);
+      var r2v=rankOf(u2, songName);
+      var dE=r2v-cur;
+      if(dE<=0 || Math.random()<Math.exp(-dE/T)){
+        ans=ans2; u=u2; cur=r2v;
+        if(cur===1) return {ans:ans, rank:1, timedOut:false};
+      }
+      T*=0.998;
+      if(T<0.05) break;
+    }
+    if(cur<bestRank){ bestRank=cur; bestAns=ans.slice(); }
+  }
+  return {ans:bestAns||new Array(NQ).fill(0), rank:bestRank, timedOut:true};
+}
+
+
+/* ---------- 求解 ---------- */
+var curSong=null, curPlans=[], curIdx=0, curFallback=null, curTimedOut=false;
+var curU=null, curCompare=null, axisPts=[], planShowAll=false, planFilter='';
+
+function solve(songName){
+  curSong=songName; curPlans=[]; curIdx=0; curFallback=null; curTimedOut=false;
+  var p1=phase1(songName, 100, 300, 100);
+  if(p1.plans.length>0){
+    curPlans=p1.plans;
+    var psi=siOf(songName), pp=SONG_P[psi];
+    /* 按契合度排序：距离升序 = 契合降序 */
+    curPlans.sort(function(a,b){ return dist(a.u,pp)-dist(b.u,pp); });
+    curIdx=0; curU=curPlans[0].u;
+    planShowAll=false;
+  } else {
+    var p2=phase2(songName, 3000);
+    var fbU = scoreVec(p2.ans);
+    curFallback={ans:p2.ans, u:fbU, rank:p2.rank};
+    curTimedOut=p2.timedOut;
+  }
+  render();
+}
+
+/* ---------- 渲染 ---------- */
+var CN=['壹','贰','叁','肆','伍','陆','柒','捌','玖','拾','拾壹','拾贰','拾叁','拾肆','拾伍','拾陆','拾柒','拾捌','拾玖','贰拾'];
+function cnIdx(i){ return CN[i] || String(i+1); }
+
+function planText(p){ return p.ans.join(''); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function shortText(text, n){ return text.length<=n ? text : text.slice(0,n)+'…'; }
+
+function render(){
+  var out=document.getElementById('result');
+  out.classList.add('on');
+  var banner=document.getElementById('banner');
+  var isTop = curPlans.length>0 || (curFallback && curFallback.rank===1);
+  var rank = curPlans.length>0 ? 1 : (curFallback?curFallback.rank:null);
+  var bestAns = curPlans.length>0 ? curPlans[0].ans : (curFallback?curFallback.ans:null);
+  var bestU = curPlans.length>0 ? curPlans[0].u : (curFallback?curFallback.u:null);
+  var si=-1; for(var i=0;i<NS;i++) if(SONGS[i].name===curSong){ si=i; break; }
+  var L = bestAns ? (officialList(bestAns) || rankedList(bestU||SONG_P[si])) : rankedList(bestU||SONG_P[si]);
+  var sim=null;
+  for(var i=0;i<L.length;i++) if(L[i].name===curSong){ sim=L[i].sim; break; }
+  var simShow=Math.min(100, Math.round(sim));
+  var html='<div class="song">《'+curSong+'》</div>';
+  html+='<div class="rank">最终可达成排名：<b>'+(rank===1?'第 1 名':'第 '+rank+' 名')+'</b></div>';
+  html+='<div class="stamp">'+(isTop?'所 求 得 偿':'已 是 最 佳')+'</div>';
+  if(curTimedOut) html+='<div class="meta">注：本次搜索超时，结果可能非全局最优，可再次点击求解重试。</div>';
+  else html+='<div class="meta">契合度 '+simShow+'%</div>';
+  banner.innerHTML=html;
+
+  if(bestU){ curU=bestU; drawRadar(bestU, {name:curSong, p:SONG_P[si]}, curCompare); }
+  renderRank(L);
+  renderPlanArea();
+}
+
+function renderRank(L){
+  var ul=document.getElementById('rankList');
+  var html='';
+  for(var i=0;i<Math.min(10,L.length);i++){
+    var s=L[i], me=(s.name===curSong);
+    var p=SONG_P[siOf(s.name)];
+    var tipHtml='<div class="liTip"><div class="tt">《'+esc(s.name)+'》</div><div class="tr">'+
+      AXNAME.map(function(n,j){ return '<span>'+n+'<i>'+p[j]+'</i></span>'; }).join('')+
+      '</div><div class="tm">距离 '+s.dist.toFixed(2)+' · 契合 '+Math.min(100,Math.round(s.sim))+'%</div></div>';
+    html+='<li class="'+(me?'me':'cmp')+'" data-name="'+esc(s.name)+'"><span class="rk">'+cnIdx(i)+'</span>'+
+          '<span class="nm">'+esc(s.name)+(me?' ◀':'')+(curCompare&&curCompare.name===s.name?' ⊕':'')+'</span>'+
+          '<span class="dt">'+s.dist.toFixed(2)+'</span>'+
+          '<span class="sm">契合 '+Math.min(100,Math.round(s.sim))+'%</span>'+
+          tipHtml+'</li>';
+  }
+  ul.innerHTML=html;
+  /* 点击榜单歌 -> 在雷达图叠加对比（再点取消）。onclick 覆盖式绑定，避免监听器累积 */
+  ul.onclick=function(e){
+    var t=e.target;
+    while(t && t!==ul && t.tagName!=='LI') t=t.parentNode;
+    if(!t || t===ul) return;
+    var nm=t.getAttribute('data-name');
+    if(!nm) return;
+    if(nm===curSong){ curCompare=null; }
+    else if(curCompare && curCompare.name===nm){ curCompare=null; }
+    else{
+      for(var i=0;i<NS;i++) if(SONGS[i].name===nm){ curCompare={name:SONGS[i].name, p:SONG_P[i].slice()}; break; }
+    }
+    if(curU) drawRadar(curU, {name:curSong, p:SONG_P[siOf(curSong)]}, curCompare);
+    renderRank(rankedList(curU||SONG_P[siOf(curSong)]));
+  };
+}
+function siOf(name){
+  for(var i=0;i<NS;i++) if(SONGS[i].name===name) return i;
+  return 0;
+}
+
+function renderPlanArea(){
+  var pc=document.getElementById('planCount');
+  var has = curPlans.length>0;
+  pc.textContent = has ? ('共 '+curPlans.length+' 套登顶方案（搜索上限 100）')
+                       : (curFallback?('未找到登顶方案，以下为最佳（第 '+curFallback.rank+' 名）'):'');
+  var ans = has ? curPlans[curIdx].ans : (curFallback?curFallback.ans:null);
+  if(!ans) return;
+  /* 方案列表：全部登顶方案，标注各自特长，点击选中 */
+  if(has){
+    var si=siOf(curSong), p=SONG_P[si];
+    var bestArea=-1, bestFit=null;
+    for(var i=0;i<curPlans.length;i++){
+      var ar=overlapArea(curPlans[i].u,p);
+      if(ar>bestArea) bestArea=ar;
+      var fd=dist(curPlans[i].u,p);
+      if(bestFit===null || fd<bestFit) bestFit=fd;
+    }
+    /* 筛选：全部 / 契合最佳 / 面积最大 / 端属性排序（如 现代、古典…） */
+    function attrVal(pl,a){ return a.side===0 ? pl.u[a.a] : 100-pl.u[a.a]; }
+    function getAttr(key){ var m=key.match(/^a(\d+)s(\d)$/); return ATTRS[parseInt(m[1],10)*2+parseInt(m[2],10)]; }
+    var attrMode = /^a\d+s\d$/.test(planFilter||'');
+    function planMatches(pl){
+      if(planFilter==='') return true;
+      if(planFilter==='fit') return Math.abs(dist(pl.u,p)-bestFit)<=Math.max(1,Math.abs(bestFit))*1e-6;
+      if(planFilter==='area') return Math.abs(overlapArea(pl.u,p)-bestArea)<=Math.max(1,Math.abs(bestArea))*1e-6;
+      return true;
+    }
+    var fbox=document.getElementById('planFilters');
+    var fbtns=[['','全部'],['fit','★契合最佳'],['area','面积最大']];
+    for(var i=0;i<ATTRS.length;i++) fbtns.push(['a'+ATTRS[i].a+'s'+ATTRS[i].side, ATTRS[i].name]);
+    var fh=fbtns.map(function(b){
+      var on = planFilter===b[0];
+      return '<button class="pf-btn'+(on?(b[0]==='fit'?' onfit':' on'):'')+'" data-f="'+b[0]+'">'+b[1]+'</button>';
+    }).join('');
+    fbox.innerHTML=fh;
+    Array.prototype.forEach.call(fbox.children, function(b){
+      b.addEventListener('click', function(){
+        planFilter=b.getAttribute('data-f');
+        var first=-1;
+        for(var i=0;i<curPlans.length;i++){ if(planMatches(curPlans[i])){ first=i; break; } }
+        curIdx = first>=0 ? first : 0;
+        curU=curPlans[curIdx].u;
+        renderAll();
+      });
+    });
+    var shownPlans=[];
+    if(attrMode){
+      /* 端属性：全部方案按该属性值降序，同值比契合度 */
+      var attr=getAttr(planFilter);
+      for(var i=0;i<curPlans.length;i++) shownPlans.push(i);
+      shownPlans.sort(function(x,y){
+        var vx=attrVal(curPlans[x],attr), vy=attrVal(curPlans[y],attr);
+        if(vx!==vy) return vy-vx;
+        return dist(curPlans[x].u,p)-dist(curPlans[y].u,p);
+      });
+      pc.textContent += ' · 按「'+attr.name+'」降序';
+    } else {
+      for(var i=0;i<curPlans.length;i++) if(planMatches(curPlans[i])) shownPlans.push(i);
+      pc.textContent += ' · 筛选后 '+shownPlans.length+' 套';
+    }
+    var list=document.getElementById('planList');
+    var shown = planShowAll ? shownPlans.length : Math.min(6, shownPlans.length);
+    var h='';
+    for(var i=0;i<shown;i++){
+      var pi=shownPlans[i], pl=curPlans[pi];
+      var tags=[];
+      if(Math.abs(dist(pl.u,p)-bestFit)<=Math.max(1,Math.abs(bestFit))*1e-6) tags.push(['best','★契合最佳']);
+      if(Math.abs(overlapArea(pl.u,p)-bestArea)<1e-9) tags.push(['','面积最大']);
+      if(attrMode && shownPlans.length>0){
+        var attr=getAttr(planFilter);
+        var mx=attrVal(curPlans[shownPlans[0]],attr);
+        if(Math.abs(attrVal(pl,attr)-mx)<1e-9) tags.push(['',attr.name+' '+attrVal(pl,attr)]);
+      }
+      var total=0; for(var a=0;a<NAX;a++) total+=pl.u[a];
+      var fit = Math.min(100, Math.round(simOf(dist(pl.u,p))));
+      var sel = (pi===curIdx);
+      h+='<div class="planitem'+(sel?' sel':'')+'" data-i="'+pi+'">'+
+         '<div class="pi-head"><span class="pi-no">方案 '+(pi+1)+'</span>'+
+         (tags.length?('<span class="pi-tags">'+tags.map(function(t){return '<em'+(t[0]?' class="'+t[0]+'"':'')+'>'+t[1]+'</em>';}).join('')+'</span>'):'')+
+         '<span class="pi-fit">契合 <b>'+fit+'%</b></span>'+
+         '<span class="pi-check">'+(sel?'✓ 当前':'')+'</span></div>'+
+         '<div class="pi-axes">'+AXNAME.map(function(n,a){
+           var v=r2(pl.u[a]);
+           var nm = v>50 ? AXNAME[a] : (v<50 ? AXNAME_R[a] : AXNAME[a]);
+           var val = v>=50 ? v : r2(100-v);
+           return '<span>'+nm+' <b>'+val+'</b></span>';
+         }).join('')+
+         '<span class="pi-total">合计 <b>'+r2(total)+'</b></span></div>'+
+         '</div>';
+    }
+    if(shownPlans.length>6){
+      h+='<div class="planMore"><button id="btnPlanMore">'+(planShowAll?'收起':'展开全部（'+shownPlans.length+' 套）')+'</button></div>';
+    }
+    list.innerHTML=h;
+    Array.prototype.forEach.call(list.children, function(el){
+      el.addEventListener('click', function(){
+        var di=el.getAttribute('data-i');
+        if(di===null) return;
+        curIdx=parseInt(di,10);
+        curU=curPlans[curIdx].u;
+        renderAll();
+      });
+    });
+    var moreBtn=document.getElementById('btnPlanMore');
+    if(moreBtn) moreBtn.addEventListener('click', function(){ planShowAll=!planShowAll; renderPlanArea(); });
+  }
+  /* 1~20 紧凑列表：题号 + 题名 + 所选选项缩略（悬停看完整选项与题干） */
+  var box=document.getElementById('qCards');
+  var h='';
+  for(var i=0;i<NQ;i++){
+    var q=QS[i], o=q.options[ans[i]];
+    h+='<div class="planrow" title="第'+cnIdx(i)+'题 · '+esc(q.title)+'\n'+esc(q.stem)+'\n【选】'+esc(o.text)+'">'+
+       '<span class="rowno">'+cnIdx(i)+'</span><span class="rowtitle">'+esc(q.title)+'</span>'+
+       '<span class="rowpick">选「'+shortText(o.text,10)+'」</span></div>';
+  }
+  box.innerHTML=h;
+}
+
+function drawRadar(u, target, compare){
+  var cv=document.getElementById('radar');
+  var c=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  c.clearRect(0,0,W,H);
+  var cx=W/2, cy=H/2+6, R=Math.min(W,H)/2-78;
+  var tp=target.p, cp=compare?compare.p:null;
+  axisPts=[];
+  function pt(a, val){ var ang=-Math.PI/2+a*2*Math.PI/NAX, rr=R*val/100; return {x:cx+rr*Math.cos(ang), y:cy+rr*Math.sin(ang)}; }
+  function rrpath(x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
+  /* 背景：极淡径向光晕 */
+  var bg=c.createRadialGradient(cx,cy,10,cx,cy,R*1.18);
+  bg.addColorStop(0,'rgba(255,252,244,.95)');
+  bg.addColorStop(1,'rgba(238,224,198,.45)');
+  c.fillStyle=bg;
+  c.beginPath(); c.arc(cx,cy,R*1.16,0,Math.PI*2); c.fill();
+  /* 网格环：从外到内，内层淡填充 + 细线 */
+  for(var ring=4;ring>=1;ring--){
+    var rr=R*ring/4;
+    c.beginPath(); c.arc(cx,cy,rr,0,Math.PI*2);
+    c.fillStyle='rgba(42,37,33,'+(0.028*(5-ring))+')';
+    c.fill();
+    c.strokeStyle='rgba(42,37,33,.13)'; c.lineWidth=1;
+    c.stroke();
+  }
+  /* 轴线 */
+  for(var a=0;a<NAX;a++){
+    var ang=-Math.PI/2+a*2*Math.PI/NAX;
+    c.strokeStyle='rgba(42,37,33,.16)';
+    c.beginPath(); c.moveTo(cx,cy); c.lineTo(cx+R*Math.cos(ang), cy+R*Math.sin(ang)); c.stroke();
+  }
+  /* 中心点 */
+  c.fillStyle='rgba(42,37,33,.3)';
+  c.beginPath(); c.arc(cx,cy,3,0,Math.PI*2); c.fill();
+  /* 轴标签：正极词带衬底，负极词小灰 */
+  for(var a=0;a<NAX;a++){
+    var ang=-Math.PI/2+a*2*Math.PI/NAX;
+    var lx=cx+(R+34)*Math.cos(ang), ly=cy+(R+34)*Math.sin(ang);
+    c.font='15px "STKaiti","KaiTi",serif';
+    var tw=c.measureText(AXNAME[a]).width;
+    c.fillStyle='rgba(252,247,238,.9)';
+    rrpath(lx-tw/2-8, ly-14, tw+16, 30, 8); c.fill();
+    c.fillStyle='#2a2521'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(AXNAME[a], lx, ly-4);
+    c.fillStyle='#a1968a'; c.font='10.5px "Songti SC",serif';
+    c.fillText(AXES[a].neg, lx, ly+14);
+  }
+  /* 对比歌（虚线，垫底） */
+  var cpts=[];
+  if(cp){
+    for(var a=0;a<NAX;a++) cpts.push(pt(a, cp[a]));
+    c.strokeStyle='#8e44ad'; c.lineWidth=2; c.setLineDash([6,4]); c.lineJoin='round';
+    poly(c,cpts,false);
+    c.setLineDash([]);
+  }
+  /* 目标歌 */
+  var tpts=[]; for(var a=0;a<NAX;a++) tpts.push(pt(a, tp[a]));
+  c.strokeStyle='#1f7a8c'; c.lineWidth=2.5; c.lineJoin='round';
+  poly(c,tpts,false);
+  /* 你的作答（最上层，柔光） */
+  var upts=[]; for(var a=0;a<NAX;a++) upts.push(pt(a, u[a]));
+  c.save();
+  c.shadowColor='rgba(225,75,59,.4)'; c.shadowBlur=12;
+  c.strokeStyle='#e14b3b'; c.lineWidth=3.2; c.lineJoin='round';
+  poly(c,upts,false);
+  c.restore();
+  /* 数据点：白描边增强可见性 */
+  for(var a=0;a<NAX;a++){
+    var T=tpts[a], U=upts[a];
+    var ad={a:a, u:u[a], t:tp[a], c:cp?cp[a]:null};
+    if(cp){
+      var C=cpts[a];
+      c.strokeStyle='#8e44ad'; c.lineWidth=2;
+      c.beginPath(); c.arc(C.x,C.y,4.5,0,Math.PI*2); c.stroke();
+      c.fillStyle='rgba(255,255,255,.7)';
+      c.beginPath(); c.arc(C.x,C.y,4.5,0,Math.PI*2); c.fill();
+      axisPts.push({x:C.x, y:C.y, d:ad});
+    }
+    /* 目标方块 */
+    c.fillStyle='#ffffff';
+    rrpath(T.x-5, T.y-5, 10, 10, 2.5); c.fill();
+    c.fillStyle='#1f7a8c';
+    rrpath(T.x-4, T.y-4, 8, 8, 2); c.fill();
+    /* 你的圆 */
+    c.fillStyle='#ffffff';
+    c.beginPath(); c.arc(U.x,U.y,7,0,Math.PI*2); c.fill();
+    c.fillStyle='#e14b3b';
+    c.beginPath(); c.arc(U.x,U.y,5,0,Math.PI*2); c.fill();
+    axisPts.push({x:T.x, y:T.y, d:ad});
+    axisPts.push({x:U.x, y:U.y, d:ad});
+  }
+  /* 图例：圆角条 */
+  c.setLineDash([]);
+  c.font='12.5px "Songti SC",serif'; c.textAlign='left'; c.textBaseline='middle';
+  var items=[
+    {t:'《'+target.name+'》 参数', color:'#1f7a8c'},
+    {t:'你的作答', color:'#e14b3b'}
+  ];
+  if(cp) items.push({t:'《'+compare.name+'》 参数', color:'#8e44ad'});
+  var x0=cx-R+4, y0=cy+R+40;
+  c.font='12.5px "Songti SC",serif';
+  var widths=items.map(function(it){ return 24+c.measureText(it.t).width; });
+  var totalW=0; for(var i=0;i<widths.length;i++) totalW+=widths[i];
+  rrpath(x0-10, y0-6, totalW+20, 28, 9);
+  c.fillStyle='rgba(252,247,238,.92)'; c.fill();
+  var xx=x0;
+  for(var i=0;i<items.length;i++){
+    c.fillStyle=items[i].color;
+    rrpath(xx+2, y0-3, 14, 14, 3); c.fill();
+    c.fillStyle='#6b5f52';
+    c.fillText(items[i].t, xx+24, y0+4);
+    xx+=widths[i];
+  }
+  /* 悬浮信息 */
+  var wrap=document.getElementById('radarWrap'), tip=document.getElementById('tip');
+  cv.onmousemove=function(e){
+    var rect=cv.getBoundingClientRect();
+    var wrapRect=wrap.getBoundingClientRect();
+    var mx=(e.clientX-rect.left)*cv.width/rect.width;
+    var my=(e.clientY-rect.top)*cv.height/rect.height;
+    var hit=null, bestD=32;
+    for(var i=0;i<axisPts.length;i++){
+      var p=axisPts[i];
+      var dd=Math.hypot(mx-p.x, my-p.y);
+      if(dd<bestD){ bestD=dd; hit=p; }
+    }
+    if(!hit){ tip.classList.add('hidden'); return; }
+    var hd=hit.d, ax=AXES[hd.a];
+    var html='<b>'+ax.pos+'</b><span style="color:#a1968a">（'+ax.neg+'）</span><br>';
+    html+='《'+esc(target.name)+'》：'+r2(hd.t)+'<br>';
+    var d1=r2(hd.u-hd.t);
+    html+='你的作答：'+r2(hd.u)+' <span class="'+(d1>=0?'hi':'lo')+'">'+(d1>=0?'+':'')+d1+'</span>';
+    if(hd.c!==null){
+      var d2=r2(hd.c-hd.u);
+      html+='<br>《'+esc(compare.name)+'》：'+r2(hd.c)+' <span class="'+(d2>=0?'lo':'hi')+'">'+(d2>=0?'+':'')+d2+'</span>';
+    }
+    tip.innerHTML=html;
+    tip.classList.remove('hidden');
+    var tw=tip.offsetWidth, th=tip.offsetHeight;
+    var tx=(e.clientX-wrapRect.left)+16, ty=(e.clientY-wrapRect.top)-th-12;
+    if(tx+tw>wrapRect.width) tx=wrapRect.width-tw-6;
+    if(ty<2) ty=(e.clientY-wrapRect.top)+18;
+    tip.style.left=tx+'px'; tip.style.top=ty+'px';
+  };
+  cv.onmouseleave=function(){ tip.classList.add('hidden'); };
+}
+function poly(c, pts, fill){
+  c.beginPath();
+  for(var i=0;i<pts.length;i++){ if(i===0) c.moveTo(pts[i].x,pts[i].y); else c.lineTo(pts[i].x,pts[i].y); }
+  c.closePath();
+  if(fill) c.fill();
+  c.stroke();
+}
+
+/* ---------- 事件 ---------- */
+function refreshSongList(){
+  var listEl=document.getElementById('songList');
+  listEl.innerHTML='';
+  SONGS.forEach(function(s){
+    var o=document.createElement('option'); o.value=s.name; listEl.appendChild(o);
+  });
+}
+refreshSongList();
+var inputEl=document.getElementById('songInput');
+var hintEl=document.getElementById('searchHint');
+var warnEl=document.getElementById('warnBox');
+warnEl.innerHTML='<b>提示：</b>站点每题选项顺序是随机的，请按<b>选项文本</b>对照选择，勿按字母。';
+warnEl.style.display='block';
+function resolveName(v){
+  if(!v) return null;
+  var exact=null;
+  for(var i=0;i<NS;i++) if(SONGS[i].name===v) return v;
+  var hits=SONGS.filter(function(s){ return s.name.indexOf(v)>=0; });
+  if(hits.length===1) return hits[0].name;
+  if(hits.length>1){ hintEl.textContent='“'+v+'” 匹配到 '+hits.length+' 首：'+hits.map(function(s){return s.name;}).join('、')+'，请选择其一'; return null; }
+  hintEl.textContent='未找到“'+v+'”，试试从下拉列表中选择'; return null;
+}
+function go(){
+  var name=resolveName(inputEl.value.trim());
+  if(!name) return;
+  hintEl.textContent='正在求解《'+name+'》…';
+  setTimeout(function(){
+    solve(name);
+    hintEl.textContent='已求出《'+name+'》的最佳方案';
+  }, 10);
+}
+document.getElementById('btnSolve').addEventListener('click', go);
+inputEl.addEventListener('keydown', function(e){ if(e.key==='Enter') go(); });
+inputEl.addEventListener('input', function(){ if(hintEl.textContent) hintEl.textContent=''; });
+function renderAll(){
+  if(!curU) return;
+  var si=siOf(curSong);
+  drawRadar(curU, {name:curSong, p:SONG_P[si]}, curCompare);
+  renderRank(rankedList(curU));
+  renderPlanArea();
+}
+/* 雷达图重叠面积（逐轴取小值围成的公共多边形面积） */
+function overlapArea(u, p){
+  var s=0, ang=2*Math.PI/NAX;
+  for(var a=0;a<NAX;a++){
+    s += Math.min(u[a],p[a]) * Math.min(u[(a+1)%NAX],p[(a+1)%NAX]) * Math.sin(ang);
+  }
+  return s/2;
+}
+
+/* ---------- 在线数据更新：尝试拉取最新 data.js，失败回退内置 ---------- */
+var stampEl=document.getElementById('dataStamp');
+function fmtTime(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function fnv(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(16); }
+function setStamp(html){ if(stampEl) stampEl.innerHTML=html; }
+function saneData(d){
+  if(!d || !Array.isArray(d.questions) || !Array.isArray(d.songs) || !Array.isArray(d.axes)) return false;
+  if(d.questions.length<1 || d.songs.length<1 || d.axes.length<1) return false;
+  var nax=d.axes.length;
+  for(var i=0;i<d.questions.length;i++){
+    var q=d.questions[i];
+    if(!q || !Array.isArray(q.options) || q.options.length<2) return false;
+    for(var k=0;k<q.options.length;k++){
+      var o=q.options[k];
+      if(!o || typeof o.mainAxis!=='number' || typeof o.subAxis!=='number' ||
+         o.mainAxis<0 || o.mainAxis>=nax || o.subAxis<0 || o.subAxis>=nax) return false;
+    }
+  }
+  for(var i=0;i<d.songs.length;i++){
+    var s=d.songs[i];
+    if(!s || !Array.isArray(s.p) || s.p.length!==nax) return false;
+    for(var a=0;a<nax;a++) if(typeof s.p[a]!=='number') return false;
+  }
+  return true;
+}
+function clearResult(){
+  var out=document.getElementById('result');
+  out.classList.remove('on');
+  curSong=null; curPlans=[]; curIdx=0; curFallback=null; curTimedOut=false; curU=null; curCompare=null;
+}
+function loadRemote(url, timeoutMs){
+  return new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    var timer=null;
+    function cleanup(){ if(timer) clearTimeout(timer); if(s.parentNode) s.parentNode.removeChild(s); }
+    timer=setTimeout(function(){ cleanup(); reject(new Error('timeout')); }, timeoutMs);
+    s.onload=function(){ cleanup(); var d=window.GFTI_DATA; if(saneData(d)) resolve(d); else reject(new Error('bad data')); };
+    s.onerror=function(){ cleanup(); reject(new Error('load error')); };
+    s.src=url;
+    document.head.appendChild(s);
+  });
+}
+function doUpdate(cb){
+  setStamp('数据：正在更新…');
+  var idx=0;
+  function next(){
+    if(idx>=DATA_URLS.length){
+      setStamp('数据：使用内置历史版（'+BUILTIN_STAMP+'）· 在线源暂不可用');
+      cb && cb(false);
+      return;
+    }
+    var url=DATA_URLS[idx++];
+    setStamp('数据：正在获取 '+url.replace(/^https?:\/\//,'')+' …');
+    loadRemote(url, 8000).then(function(data){
+      initData(data);
+      refreshSongP();
+      refreshSongList();
+      clearResult();
+      var h=fnv(JSON.stringify(data));
+      setStamp('数据：<b>已更新至最新</b>（来源 '+url.replace(/^https?:\/\//,'')+' · '+fmtTime(new Date())+' · 指纹 '+h+'）—— 请重新输入歌名求解');
+      /* 数据更新后同步刷新公式模块（官方可能同时更新了 assessment.js） */
+      loadAssessmentScript(function(mod){ if(mod) OFF_ENGINE=mod; checkAlgo(); });
+      cb && cb(true);
+    }).catch(function(){ next(); });
+  }
+  next();
+}
+
+/* ---------- 显式更新门面：先更新数据，再解锁主界面 ---------- */
+var bootEl=document.getElementById('boot'), mainEl=document.getElementById('mainUI');
+var btnUpdate=document.getElementById('btnUpdate'), btnUse=document.getElementById('btnUseBuiltin');
+var bootMsgEl=document.getElementById('bootMsg');
+function showApp(){
+  bootEl.classList.add('hidden');
+  mainEl.classList.remove('hidden');
+  renderRecs();
+}
+/* 随机推荐几首歌曲（点击即搜，可换一批） */
+function renderRecs(){
+  var box=document.getElementById('recs');
+  var picks=[];
+  var n=Math.min(6, NS);
+  while(picks.length<n){
+    var j=(Math.random()*NS)|0;
+    if(picks.indexOf(j)<0) picks.push(j);
+  }
+  var chips=picks.map(function(j){
+    return '<button class="rec-chip" data-name="'+esc(SONGS[j].name)+'">'+esc(SONGS[j].name)+'</button>';
+  }).join('');
+  box.innerHTML='<span class="rec-title">随便试试：</span>'+chips+'<button class="rec-more" id="recMore">换一批 ↻</button>';
+  Array.prototype.forEach.call(box.querySelectorAll('.rec-chip'), function(b){
+    b.addEventListener('click', function(){
+      inputEl.value=b.getAttribute('data-name');
+      go();
+    });
+  });
+  document.getElementById('recMore').addEventListener('click', function(){ renderRecs(); });
+}
+btnUpdate.addEventListener('click', function(){
+  btnUpdate.disabled=true;
+  btnUse.classList.add('hidden');
+  bootMsgEl.innerHTML='正在获取最新数据…';
+  doUpdate(function(ok){
+    btnUpdate.disabled=false;
+    if(ok){
+      bootMsgEl.innerHTML='<b>更新成功</b>：已载入最新数据（'+fmtTime(new Date())+'，版本信息见页脚）。';
+      showApp();
+    } else {
+      bootMsgEl.innerHTML='在线源暂不可用（无网络 / 超时 / 数据源出错）。';
+      btnUse.classList.remove('hidden');
+    }
+  });
+});
+btnUse.addEventListener('click', function(){
+  initData(BUILTIN_DATA);
+  refreshSongP();
+  refreshSongList();
+  clearResult();
+  setStamp('数据：使用内置历史版（'+BUILTIN_STAMP+'）· 在线源暂不可用');
+  bootMsgEl.innerHTML='已使用内置历史数据（'+BUILTIN_STAMP+'）。';
+  showApp();
+});
+document.getElementById('btnReupdate').addEventListener('click', function(){
+  clearResult();
+  setStamp('数据：正在更新…');
+  document.getElementById('searchHint').textContent='正在更新数据…';
+  doUpdate(function(ok){
+    document.getElementById('searchHint').textContent = ok
+      ? '数据已更新至最新，请重新输入歌名求解'
+      : '在线源暂不可用，仍在使用当前数据';
+    if(ok) renderRecs();
+  });
+});
+
+/* ---------- 公式版本检测：实时加载线上 assessment.js，读取官方算法版本 ---------- */
+function algoSig(src){
+  var s=[], m;
+  if(/PARTICIPANT_SPREAD_CONFIG[\s\S]*?center: (\d+), gain: ([\d.]+)/.test(src)) s.push('spreadtanh'+RegExp.$1+':'+RegExp.$2);
+  else if(src.indexOf('SPREAD_CONFIG')>=0) s.push('spread16');
+  else if(src.indexOf('Math.floor(Math.sqrt(profile[0]')>=0 || src.indexOf('Math.floor(Math.sqrt(v[0]')>=0) s.push('sqrt0');
+  else s.push('lin');
+  if((m=src.match(/CLASSICAL_LEAN_STRENGTH = ([\d.]+)/))) s.push('warp'+m[1]);
+  if((m=src.match(/SONG_COMPRESS_SCALE = ([\d.]+)/))) s.push('song'+m[1]);
+  if((m=src.match(/DISTANCE_POWER = ([\d.]+)/))) s.push('dist-lp'+m[1]);
+  else if(src.indexOf('squaredDistance += difference * difference')>=0) s.push('dist-euclid');
+  if((m=src.match(/SIMILARITY_PLATEAU = ([\d.]+)/))){
+    var d2=src.match(/SIMILARITY_DECAY_BASE = ([\d.]+)/), e2=src.match(/SIMILARITY_EXPONENT = ([\d.]+)/);
+    s.push('sim-plat'+m[1]+':'+(d2?d2[1]:'?')+':'+(e2?e2[1]:'?'));
+  }
+  else if((m=src.match(/var SIGMA = ([\d.]+)/))) s.push('sim-gauss'+m[1]);
+  else if(src.indexOf('100000 / (distance * distance)')>=0) s.push('sim-100000r2');
+  else if(src.indexOf('(12 - R) / 8')>=0) s.push('sim-exp12-8');
+  else if(src.indexOf('(15 - R) / 6')>=0) s.push('sim-exp15-6');
+  else if(src.indexOf('10000 / (R * R + 100)')>=0) s.push('sim-10000r2');
+  return s.join('|');
+}
+function algoLabel(sig){
+  return (sig||'').split('|').map(function(p){
+    if(p.indexOf('spreadtanh')===0) return 'tanh拉伸('+p.slice(11)+')';
+    if(p.indexOf('warp')===0) return '古典warp^'+p.slice(4);
+    if(p.indexOf('song')===0) return '歌曲压缩×'+p.slice(4);
+    if(p.indexOf('dist-lp')===0) return 'Lp'+p.slice(7)+'距离';
+    if(p.indexOf('dist-euclid')===0) return '欧氏距离';
+    if(p.indexOf('dist-sqrt')===0) return 'Σ√距离';
+    if(p.indexOf('sim-plat')===0) return '平台幂律('+p.slice(8)+')';
+    if(p.indexOf('sim-gauss')===0) return '高斯核σ'+p.slice(9);
+    if(p.indexOf('sim-100000r2')===0) return '100000/R²';
+    if(p.indexOf('sim-exp12-8')===0) return 'e^((12−R)/8)';
+    if(p.indexOf('sim-exp15-6')===0) return 'e^((15−R)/6)';
+    if(p.indexOf('sim-10000r2')===0) return '10000/(R²+100)';
+    if(p.indexOf('sqrt0')===0) return '第一轴开方';
+    return p;
+  }).join(' + ');
+}
+/* ---------- 公式版本检测：实时加载线上 assessment.js，读取官方算法版本 ---------- */
+var algoEl=document.getElementById('algoStamp');
+function loadAssessmentScript(cb){
+  var url = DATA_URLS[0].replace(/data\.js$/, 'assessment.js');
+  var s=document.createElement('script');
+  s.src=url;
+  s.onload=function(){ cb && cb(window.GFTIAssessment||null); try{ document.head.removeChild(s); }catch(e){} };
+  s.onerror=function(){ cb && cb(null); try{ document.head.removeChild(s); }catch(e){} };
+  document.head.appendChild(s);
+}
+/* 官方算法快照（构建时注入）：源码 + 版本号，用于签名比对 */
+var OFF_ASSESS_SRC="/**\n * 文件说明：古风气韵评测的纯算法 module，不读取页面、存储或浏览器全局状态。\n */\n/**\n * 把同一份评测 interface 暴露给 Node 测试和浏览器页面。\n *\n * @param {object} root 当前运行环境的全局对象。\n * @param {function(): object} factory 创建公开 interface 的工厂函数。\n * @returns {void}\n */\n(function (root, factory) {\n  'use strict';\n\n  const publicInterface = factory();\n\n  if (typeof module === 'object' && module.exports) {\n    module.exports = publicInterface;\n  } else {\n    root.GFTIAssessment = publicInterface;\n  }\n})(typeof globalThis !== 'undefined' ? globalThis : this,\n/**\n * 组装古风气韵评测 module，并隐藏内部数学实现。\n *\n * @returns {{createAssessment: function(object): object, algorithmVersion: string}} 公开 interface。\n */\nfunction createAssessmentModule() {\n  'use strict';\n\n  const AXIS_COUNT = 5;\n  const ALGORITHM_VERSION = '1.5.1';\n\n  /* ==========================================================\n   * 参与者五维气韵的逐轴软饱和拉伸配置（v1.1.0，沿用）\n   * ========================================================== */\n  var PARTICIPANT_SPREAD_CONFIG = [\n    { center: 70, gain: 2.25 },\n    { center: 50, gain: 1.6 },\n    { center: 50, gain: 1.6 },\n    { center: 50, gain: 1.6 },\n    { center: 50, gain: 1.6 }\n  ];\n\n  /* ==========================================================\n   * 古典轴 gamma warp（v1.1.0，沿用）\n   * ========================================================== */\n  var CLASSICAL_AXIS_INDEX = 0;\n  var CLASSICAL_LEAN_STRENGTH = 0.75;\n\n  /* ==========================================================\n   * Lp 可调配距离（v1.3.0 引入，v1.5.1 沿用）\n   * ========================================================== */\n  var DISTANCE_POWER = 0.2;\n\n  /* ==========================================================\n   * 歌曲坐标以 50 为中心的对称线性压缩（v1.4.1，沿用）\n   * ========================================================== */\n  var SONG_COMPRESS_SCALE = 0.8;\n\n  /* ==========================================================\n   * 带平台的反比幂律相似度（v1.5.1）\n   *\n   *   R ≤ PLATEAU        → 100\n   *   R > PLATEAU        → 100 / (1 + ((R - PLATEAU) / DECAY_BASE) ^ EXPONENT)\n   *\n   *   PLATEAU  = 31200  → 每轴差 ≤10 时全部 100%\n   *   DECAY_BASE = 43900 → 平台边缘外 43900 处降至 50%\n   *   EXPONENT = 1.2     → 衰减陡度\n   *\n   *   单调递减，相对排序与距离排序完全一致。\n   * ========================================================== */\n  var SIMILARITY_PLATEAU = 15000;\n  var SIMILARITY_DECAY_BASE = 25000;\n  var SIMILARITY_EXPONENT = 1.5;\n\n  /**\n   * 对参与者五维气韵做逐轴软饱和拉伸。\n   */\n  function spreadParticipantProfile(rawProfile) {\n    return rawProfile.map(function (val, i) {\n      var cfg = PARTICIPANT_SPREAD_CONFIG[i];\n      var normalized = (val - cfg.center) / 30;\n      var stretched = 50 + Math.tanh(normalized * cfg.gain) * 50;\n      return Math.round(Math.max(0, Math.min(100, stretched)) * 100) / 100;\n    });\n  }\n\n  /**\n   * 古典轴 gamma warp。\n   */\n  function leanClassical(value, strength) {\n    var warped = 100 * Math.pow(value / 100, strength);\n    return Math.round(Math.max(0, Math.min(100, warped)) * 100) / 100;\n  }\n\n  /**\n   * 歌曲坐标对称线性压缩。\n   */\n  function compressSongProfile(songP) {\n    return songP.map(function (val) {\n      var compressed = 50 + (val - 50) * SONG_COMPRESS_SCALE;\n      return Math.round(compressed * 100) / 100;\n    });\n  }\n\n  /**\n   * 创建评测实例。\n   */\n  function createAssessment(data) {\n    var songs = data.songs.map(function (song) {\n      return { name: song.name, p: compressSongProfile(song.p) };\n    });\n\n    function evaluate(answers, options) {\n      if (!Array.isArray(answers) || answers.length !== data.questions.length) {\n        throw new TypeError('每道题都必须有有效答案');\n      }\n\n      var rawProfile = scoreProfile(data.questions, answers);\n      var profile = spreadParticipantProfile(rawProfile);\n      profile[CLASSICAL_AXIS_INDEX] = leanClassical(\n        profile[CLASSICAL_AXIS_INDEX], CLASSICAL_LEAN_STRENGTH);\n\n      var topN = options && options.topN ? options.topN : 5;\n\n      var matches = songs.map(function (song) {\n        var songDistance = calculateDistance(profile, song.p);\n        var songSimilarity = calculateSimilarity(songDistance);\n\n        return {\n          name: song.name,\n          distance: Math.round(songDistance * 100) / 100,\n          similarity: songSimilarity,\n          displayPercent: Math.round(Math.min(songSimilarity, 100))\n        };\n      }).sort(function (left, right) {\n        return left.distance - right.distance || left.name.localeCompare(right.name, 'zh');\n      }).slice(0, topN);\n\n      return { profile: profile, matches: matches };\n    }\n\n    return { evaluate: evaluate };\n  }\n\n  /**\n   * 答案转五维气韵原始值。\n   */\n  function scoreProfile(questions, answers) {\n    var profile = [0, 0, 0, 0, 0];\n\n    questions.forEach(function (question, questionIndex) {\n      var answer = answers[questionIndex];\n      var option = question.options.find(function (candidate) {\n        return candidate.key === answer;\n      });\n\n      if (!option) {\n        throw new TypeError('每道题都必须有有效答案');\n      }\n\n      profile[option.mainAxis] += option.main;\n      profile[option.subAxis] += option.sub;\n    });\n\n    profile[0] = Math.floor(Math.sqrt(profile[0]) * 10);\n    return profile;\n  }\n\n /**\n  * Lp 距离计算（v1.5.2 修正）。\n  *\n  * 在内部求和后乘以 0.1 再取 5 次方，最后外部乘 100000，\n  * 避免数值溢出导致相似度恒为 0。\n  * 相对排序与原始距离完全一致。\n */\n function calculateDistance(profile, songProfile) {\n   var powerSum = 0;\n \n   for (var axisIndex = 0; axisIndex < AXIS_COUNT; axisIndex += 1) {\n     var difference = Math.abs(profile[axisIndex] - songProfile[axisIndex]);\n     powerSum += Math.pow(difference, DISTANCE_POWER);\n   }\n \n   return 100000 * Math.pow(powerSum * 0.1, 1 / DISTANCE_POWER);\n }\n  \n  /**\n   * 带平台的反比幂律相似度（v1.5.1）。\n   *\n   * R ≤ PLATEAU → 100\n   * R > PLATEAU → 100 / (1 + ((R - PLATEAU) / DECAY_BASE) ^ EXPONENT)\n   *\n   * @param {number} distance Lp 距离。\n   * @returns {number} 0~100 相似度，保留两位小数。\n   */\n  function calculateSimilarity(distance) {\n    console.log('[SIM] distance=' + distance + ' plateau=' + SIMILARITY_PLATEAU);\n    if (distance <= SIMILARITY_PLATEAU) {\n      return 100;\n    }\n\n    var excess = distance - SIMILARITY_PLATEAU;\n    var raw = 100 / (1 + Math.pow(excess / SIMILARITY_DECAY_BASE, SIMILARITY_EXPONENT));\n    return Math.round(raw * 100) / 100;\n  }\n\n  return {\n    createAssessment: createAssessment,\n    algorithmVersion: ALGORITHM_VERSION\n  };\n});\n", OFF_VER='1.5.1';
+function checkAlgo(){
+  if(!algoEl) return;
+  var sigBuiltin=algoSig(OFF_ASSESS_SRC);
+  function show(ok, warn){
+    algoEl.innerHTML = ok
+      ? '公式版本：<b>与官方一致</b>（'+CUR_ALGO.label+'）'
+      : '<b style="color:var(--cinnabar)">⚠ '+warn+'</b>';
+  }
+  function byVersion(mod){
+    OFF_ENGINE = mod || OFF_ENGINE;
+    var av=(mod && mod.algorithmVersion)||'';
+    if(av && av!==OFF_VER) show(false, '官方算法版本 '+av+'，内置 '+OFF_VER+' —— 需更新工具');
+    else show(true);
+  }
+  var url=DATA_URLS[0].replace(/data\.js$/, 'assessment.js');
+  fetch(url, {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : null; }).then(function(src){
+    if(src){
+      var sigOn=algoSig(src);
+      if(sigOn===sigBuiltin) show(true);
+      else show(false, '官方算法已更新：线上 '+algoLabel(sigOn)+'，内置 '+algoLabel(sigBuiltin)+' —— 需重新生成工具');
+      loadAssessmentScript(function(mod){ OFF_ENGINE=mod||OFF_ENGINE; });
+    } else loadAssessmentScript(byVersion);
+  }).catch(function(){ loadAssessmentScript(byVersion); });
+}
+checkAlgo();
+})();
+</script>
+</body>
+</html>
