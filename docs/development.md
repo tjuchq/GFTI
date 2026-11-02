@@ -118,7 +118,7 @@ npm run test:integration
    npm run test:assessment
    ```
 
-3. 如果失败信息提示“算法行为已变化”，说明唯一基线成功发现了新输出。打开 `tests/fixtures/algorithm-baseline.json` 查看当前版本，例如 `1.0.1`，然后选择更高版本，例如 `1.0.2`。
+3. 如果失败信息提示“算法行为已变化”，说明唯一基线成功发现了新输出。打开 `tests/fixtures/algorithm-baseline.json` 查看当前版本（当前是 `1.5.1`），然后选择更高版本，例如 `1.5.2`。
 4. 运行更新命令：
 
    ```powershell

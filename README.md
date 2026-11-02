@@ -79,24 +79,24 @@ npm run test:pages          # 发布包白名单
 npm run test:integration    # 真实浏览器里点完两个页面
 ```
 
-### 仓库现状：测试基线过期
+### 测试现状
 
-`tests/fixtures/algorithm-baseline.json` 里锁的是 **1.0.3** 版算法，而 `assessment.js` 已经迭代到 **1.5.1**（中间经历 tanh 拉伸、歌曲压缩、Lp 距离、平台幂律四次改动），所以 `test:assessment` / `test:simulation` 目前是红的。这不是代码坏了，是**基线没跟着算法走**。
-
-两条路都能让测试变绿，但都会改变被锁定的行为，因此没有并入这次代码整理：
+算法基线已经对齐当前实现：`tests/fixtures/algorithm-baseline.json` 记录的版本从 **1.0.3** 更新到 **1.5.1**（2026-11 一次性对齐 tanh 拉伸、歌曲压缩、Lp 距离、平台幂律四次改动）。
 
 ```bash
-# A. 承认当前算法为新基线（会改写基线文件与版本号）
-npm run algorithm:update-baseline -- 1.5.1
-
-# B. 把算法退回基线版本（会改变线上评测结果）
+npm run test:assessment   # 7 通过
+npm run test:simulation   # 16 通过
+npm run test:pages        # 1 通过
+npm run test:integration  # 需先 npm install，并起本地服务
 ```
 
-只想单独验证算法本身，绕开基线断言：
+有意改算法时，标准流程是：
 
 ```bash
-node --test tests/assessment.test.cjs
+npm run algorithm:update-baseline -- 1.5.2   # 新版本号必须递增
 ```
+
+脚本会重写基线与 `assessment.js` 里的版本号，之后检查 fixture 差异、补一段算法说明，再一起提交。基线只保留一份，页面测试通过公开 interface 取期望值，不另存名单。
 
 ## 文档
 

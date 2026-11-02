@@ -60,7 +60,7 @@ test('固定种子会生成完全相同的模拟样本集', function () {
   ]);
 });
 
-// 期望值来自三份手工答案，避免在断言中重复生产统计公式。
+// 期望值来自三份手工答案（数值按 1.5.1 拉伸公式），避免在断言中重复生产统计公式。
 test('固定模拟样本集会得到歌曲与五维气韵的完整汇总', function () {
   const data = createStatisticsExample();
   const simulation = createSimulation({
@@ -81,12 +81,14 @@ test('固定模拟样本集会得到歌曲与五维气韵的完整汇总', funct
       { name: '中间曲', firstCount: 0, firstRate: 0, topFiveCount: 3, topFiveRate: 100 },
       { name: '高调曲', firstCount: 1, firstRate: 33.33, topFiveCount: 3, topFiveRate: 100 }
     ],
+    // 五维统计是拉伸后的值（1.5.1：tanh 软饱和 + 古典轴 warp），
+    // 所以全选 A（原始全 0）落在 0.48 而不是 0，全选 B 的第 0 轴封顶在 99.17。
     profileStatistics: [
-      { name: '古典', mean: 33.33, min: 0, max: 100, bins: [2, 0, 0, 0, 0, 0, 0, 0, 0, 1] },
-      { name: '旁征博引', mean: 0, min: 0, max: 0, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-      { name: '含蓄蕴藉', mean: 0, min: 0, max: 0, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-      { name: '致密沉实', mean: 0, min: 0, max: 0, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-      { name: '精心构架', mean: 0, min: 0, max: 0, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+      { name: '古典', mean: 33.06, min: 0, max: 99.17, bins: [2, 0, 0, 0, 0, 0, 0, 0, 0, 1] },
+      { name: '旁征博引', mean: 0.48, min: 0.48, max: 0.48, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+      { name: '含蓄蕴藉', mean: 0.48, min: 0.48, max: 0.48, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+      { name: '致密沉实', mean: 0.48, min: 0.48, max: 0.48, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+      { name: '精心构架', mean: 0.48, min: 0.48, max: 0.48, bins: [3, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
     ]
   });
 });
@@ -105,8 +107,8 @@ test('请求样本明细时会返回答案、五维气韵和第一契合歌曲',
   const report = simulation.run({ samples: [['A'], ['B']], includeSampleRecords: true });
 
   assert.deepEqual(report.sampleRecords, [
-    { sampleId: 1, answers: ['A'], profile: [0, 0, 0, 0, 0], firstSong: '低调曲' },
-    { sampleId: 2, answers: ['B'], profile: [100, 0, 0, 0, 0], firstSong: '高调曲' }
+    { sampleId: 1, answers: ['A'], profile: [0, 0.48, 0.48, 0.48, 0.48], firstSong: '低调曲' },
+    { sampleId: 2, answers: ['B'], profile: [99.17, 0.48, 0.48, 0.48, 0.48], firstSong: '高调曲' }
   ]);
 });
 
