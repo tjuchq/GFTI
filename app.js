@@ -1,5 +1,13 @@
 /* ==========================================================
- * 古风TI · 听雨楼雅集 —— 答题流程与页面交互
+ * 古风TI · 听雨楼雅集 —— 页面交互总入口
+ *
+ * 本文件按页面区块分三段，顺序即依赖顺序：
+ *   ① 答题主流程  —— 首屏 / 出题 / 选项 / 结果页
+ *   ② 分享卡片    —— canvas 绘制结果长图
+ *   ③ 参数后台    —— index.html?admin=1 的歌曲线参数表
+ *
+ * 纯算法在 assessment.js，题库与曲库在 data.js，
+ * 本文件只负责 DOM、状态与流程编排。
  * ========================================================== */
 (function () {
   'use strict';
@@ -7,28 +15,42 @@
   var D = window.GFTI_DATA;
   var createAssessment = window.GFTIAssessment.createAssessment;
   var $ = function (id) { return document.getElementById(id); };
+
   var LS_SONGS = 'gfti_songs_override_v1';
+  var CN_NUM = ['壹', '贰', '叁', '肆', '伍'];
 
   /* ---------- 歌曲参数：支持后台覆盖 ---------- */
+
   var ORIGIN_SONGS = D.songs.map(function (s) { return { name: s.name, p: s.p.slice() }; });
 
+  /** 复制一份 data.js 里的原始曲库，避免调用方改到源数据。 */
+  function cloneSongs() {
+    return ORIGIN_SONGS.map(function (s) { return { name: s.name, p: s.p.slice() }; });
+  }
+
+  /**
+   * 读取当前曲库：本地覆盖优先，缺失或损坏时退回原始参数。
+   *
+   * @returns {{name: string, p: number[]}[]} 曲库副本。
+   */
   function loadSongs() {
     try {
       var raw = localStorage.getItem(LS_SONGS);
-      if (!raw) return ORIGIN_SONGS.map(function (s) { return { name: s.name, p: s.p.slice() }; });
+      if (!raw) return cloneSongs();
       var o = JSON.parse(raw);
       return ORIGIN_SONGS.map(function (s) {
         var p = o[s.name];
         return { name: s.name, p: (p && p.length === 5) ? p.slice() : s.p.slice() };
       });
     } catch (e) {
-      return ORIGIN_SONGS.map(function (s) { return { name: s.name, p: s.p.slice() }; });
+      return cloneSongs();
     }
   }
+
   var SONGS = loadSongs();
 
   /**
-   * 使用当前歌曲参数创建评测，后台修改无需刷新页面。
+   * 用当前曲库创建评测实例，后台改参数后无需刷新页面。
    *
    * @returns {{evaluate: function(Array<string>, object=): object}} 古风气韵评测 interface。
    */
@@ -37,6 +59,7 @@
   }
 
   /* ---------- 状态 ---------- */
+
   var state = { idx: 0, answers: [], order: [], result: null };
 
   function shuffle(a) {
@@ -59,6 +82,7 @@
   }
 
   /* ---------- 场景切换 ---------- */
+
   function show(id) {
     ['scene-intro', 'scene-quiz', 'scene-result'].forEach(function (s) {
       $(s).classList.toggle('on', s === id);
@@ -68,8 +92,10 @@
   }
 
   /* ---------- 墨迹晕染过渡 ---------- */
+
   var veil = $('veil'), veilBusy = false;
   var autoTimer = null;   // 选中选项后的自动跳转计时器
+
   function inkTransition(cb) {
     if (veilBusy) { cb(); return; }
     veilBusy = true;
@@ -94,7 +120,12 @@
     setTimeout(function () { veil.classList.remove('run'); veilBusy = false; }, 1050);
   }
 
+  /* ==========================================================
+   * ① 答题主流程
+   * ========================================================== */
+
   /* ---------- 首屏 ---------- */
+
   var STORY = [
     ['p', '暮春三月，你正在琴坊中抚琴，一封无署名的信函被风送入窗内。展开一看，只有一行小字——'],
     ['verse', '「听雨楼中曲未终，待君来续。」'],
@@ -103,6 +134,7 @@
     ['p', '不必思量现实当如何，亦不必揣度怎样选才风雅。但凭此刻心意，随境而择即可。'],
     ['hint', '共贰拾题 · 约需五分钟']
   ];
+
   (function renderStory() {
     var box = $('story');
     STORY.forEach(function (it, i) {
@@ -116,6 +148,7 @@
   })();
 
   /* ---------- 答题 ---------- */
+
   function renderQuestion() {
     var i = state.idx, q = D.questions[i];
     $('counter').innerHTML = '第<b>' + q.no + '</b>题 / 共贰拾题';
@@ -160,6 +193,20 @@
     inkTransition(function () { state.idx = ni; renderQuestion(); window.scrollTo(0, 0); });
   }
 
+  /* ---------- 结果页 ---------- */
+
+  /**
+   * 五维坐标 → 一排取正向或反向的轴名，用于标题句与分享卡。
+   *
+   * @param {number[]} profile 五维坐标。
+   * @returns {string} 以「 · 」连接的轴名文本。
+   */
+  function axisTagline(profile) {
+    return D.axes.map(function (a, i) {
+      return profile[i] >= 50 ? a.pos : a.neg;
+    }).join(' · ');
+  }
+
   /**
    * 格式化五维气韵的页面展示值，避免浮点尾数污染用户界面。
    *
@@ -180,7 +227,6 @@
     return String(Math.round(Number(value)));
   }
 
-  /* ---------- 结果 ---------- */
   function finish() {
     var result = createCurrentAssessment().evaluate(state.answers, { topN: 5 });
     state.result = { u: result.profile, top: result.matches };
@@ -190,9 +236,7 @@
   function renderResult() {
     var u = state.result.u, top = state.result.top;
 
-    $('tagline').textContent = D.axes.map(function (a, i) {
-      return u[i] >= 50 ? a.pos : a.neg;
-    }).join(' · ');
+    $('tagline').textContent = axisTagline(u);
 
     var box = $('axes');
     box.innerHTML = '';
@@ -212,20 +256,21 @@
 
     var sb = $('songs');
     sb.innerHTML = '';
-    var CN = ['壹', '贰', '叁', '肆', '伍'];
     top.forEach(function (s, i) {
       var d = document.createElement('div');
       d.className = 'song';
       d.style.animationDelay = (0.5 + i * 0.1) + 's';
-      var showSim = formatMatchPercent(s.displayPercent);
-      d.innerHTML = '<div class="rk">' + CN[i] + '</div>' +
+      d.innerHTML = '<div class="rk">' + CN_NUM[i] + '</div>' +
                     '<div class="nm">' + s.name + '</div>' +
-                    '<div class="sim">契合 <b>' + showSim + '</b>%</div>';
+                    '<div class="sim">契合 <b>' + formatMatchPercent(s.displayPercent) + '</b>%</div>';
       sb.appendChild(d);
     });
   }
 
-  /* ---------- 分享卡片 ---------- */
+  /* ==========================================================
+   * ② 分享卡片（canvas 绘制，750×1230 逻辑像素，2 倍导出）
+   * ========================================================== */
+
   function drawCard() {
     var W = 750, H = 1230, R = 2;
     var cv = $('card');
@@ -265,7 +310,7 @@
 
     var u = state.result.u;
     c.fillStyle = '#9e3d32'; c.font = '20px ' + kai;
-    c.fillText(D.axes.map(function (a, i) { return u[i] >= 50 ? a.pos : a.neg; }).join(' · '), cx, 230);
+    c.fillText(axisTagline(u), cx, 230);
 
     // 五轴
     var y = 300, L = 70, RW = W - 140;
@@ -305,7 +350,6 @@
     c.strokeStyle = 'rgba(42,37,33,.16)';
     c.beginPath(); c.moveTo(L + 118, sy - 5); c.lineTo(L + RW, sy - 5); c.stroke();
 
-    var CN = ['壹', '贰', '叁', '肆', '伍'];
     state.result.top.forEach(function (s, i) {
       var yy = sy + 46 + i * 52;
       c.fillStyle = i === 0 ? '#9e3d32' : 'rgba(255,253,247,.7)';
@@ -313,7 +357,7 @@
       if (i !== 0) { c.strokeStyle = 'rgba(42,37,33,.2)'; c.lineWidth = 1; c.stroke(); }
       c.textAlign = 'center'; c.font = '15px ' + kai;
       c.fillStyle = i === 0 ? '#fbf3e6' : '#9b9182';
-      c.fillText(CN[i], L + 15, yy);
+      c.fillText(CN_NUM[i], L + 15, yy);
 
       c.textAlign = 'left'; c.font = '22px ' + serif; c.fillStyle = '#5a5249';
       c.fillText(s.name, L + 46, yy);
@@ -350,7 +394,11 @@
     c.fillText('结果仅供娱乐参考', L, H - 100);
   }
 
-  /* ---------- 后台参数面板 ---------- */
+  /* ==========================================================
+   * ③ 参数后台（index.html?admin=1）
+   *    只改本机 localStorage，导出 data.js 后才正式生效
+   * ========================================================== */
+
   function renderAdmin() {
     var t = $('ad-table');
     var head = '<tr><th style="width:26px">#</th><th style="text-align:left">歌名图鉴</th>' +
@@ -377,6 +425,7 @@
     });
   }
 
+  /** 只把与原始参数不同的歌写进 localStorage，还原时整份删除。 */
   function saveOverride() {
     var o = {};
     SONGS.forEach(function (s, i) {
@@ -404,7 +453,10 @@
     $('ad-msg').textContent = '已导出 data.js，替换项目同名文件即正式生效';
   }
 
-  /* ---------- 事件绑定 ---------- */
+  /* ==========================================================
+   * 事件绑定
+   * ========================================================== */
+
   $('btn-start').addEventListener('click', function () {
     resetTest();
     inkTransition(function () { show('scene-quiz'); renderQuestion(); });
@@ -456,7 +508,10 @@
     if (e.key === 'ArrowRight' && !$('btn-next').disabled) go(1);
   });
 
-  /* ---------- 启动 ---------- */
+  /* ==========================================================
+   * 启动
+   * ========================================================== */
+
   resetTest();
   var qs = new URLSearchParams(location.search);
 

@@ -11,16 +11,22 @@
 
 领域词汇统一记录在仓库根目录的 [`CONTEXT.md`](../CONTEXT.md)。设计决策记录在 [`docs/adr/`](./adr/) 中。
 
-## 两个页面
+## 三个入口
 
 项目没有后端业务服务，也没有构建步骤。浏览器直接加载仓库里的 HTML 和 JavaScript 文件。
+三套东西各有各的页面，但共用同一份题库与算法口径，**不要把它们当成同一个页面**。
 
-| 页面 | 用途 | 地址 |
-| --- | --- | --- |
-| 普通评测页 | 用户完成二十道题并查看五维气韵与契合歌曲 | `http://127.0.0.1:8777/index.html` |
-| 模拟诊断页 | 开发者生成均匀模拟评测，查看歌曲入选分布 | `http://127.0.0.1:8777/simulation.html` |
+| 入口 | 用途 | 地址 | 数据来源 |
+| --- | --- | --- | --- |
+| 普通评测页 | 用户完成二十道题并查看五维气韵与契合歌曲 | `http://127.0.0.1:8777/index.html` | 仓库内 `data.js` |
+| 答题攻略计算器 | 指定一首歌，反推「怎样答才能提高它的排名」 | `http://127.0.0.1:8777/gfti-rank-guide.html` | 内嵌快照 + 线上 `data.js` |
+| 模拟诊断页 | 开发者生成均匀模拟评测，查看歌曲入选分布 | `http://127.0.0.1:8777/simulation.html` | 仓库内 `data.js` |
 
-不要双击 `simulation.html` 后用 `file://` 地址运行。浏览器会阻止页面创建 Web Worker，点击“开始模拟”后无法计算。启动方式见[开发说明](./development.md#第一次运行)。
+另外 `index.html?admin=1` 是**参数后台**（不是第四个页面）：只改本机 `localStorage`，导出 `data.js` 后才正式生效。
+
+答题攻略是单文件工具，内部同时含有「题库快照 + 算法副本 + 求解器」三部分，改动前先读文件顶部那段结构说明；它靠页脚的特征签名与线上 `assessment.js` 比对，参数不同步会显红警告。
+
+不要双击 `simulation.html` 或 `gfti-rank-guide.html` 后用 `file://` 地址运行。前者会被浏览器拦住 Web Worker，后者无法 `fetch` 线上数据源。启动方式见[开发说明](./development.md#第一次运行)。
 
 ## 不确定从哪里改
 
@@ -32,6 +38,7 @@
 | 修改随机样本或统计口径 | [`simulation.js`](../simulation.js) |
 | 修改 CSV、JSON 导入导出 | [`simulation-artifacts.js`](../simulation-artifacts.js) |
 | 修改模拟诊断页面 | [`simulation.html`](../simulation.html)、[`simulation-page.js`](../simulation-page.js) |
+| 修改答题攻略计算器 | [`gfti-rank-guide.html`](../gfti-rank-guide.html)（单文件，注意顶部的结构说明） |
 | 修改后台计算 | [`simulation-worker.js`](../simulation-worker.js) |
 | 添加或修改测试 | [`tests/`](../tests/) 和[测试说明](./testing.md) |
 

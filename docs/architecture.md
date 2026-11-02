@@ -40,6 +40,20 @@ Web Worker 是浏览器里的后台线程。最多一百万次模拟放在 Worke
 | [`simulation-page.js`](../simulation-page.js) | 参数选择、Worker 生命周期、图表、表格和下载 | 距离或相似度公式 |
 | [`simulation.html`](../simulation.html) | 模拟诊断页面结构与样式 | 批量统计实现 |
 
+### 答题攻略
+
+| 文件 | 职责 | 不应该放置的内容 |
+| --- | --- | --- |
+| [`gfti-rank-guide.html`](../gfti-rank-guide.html) | 单文件计算器：指定一首歌，搜出能让它排进前列的答题方案 | 与服务端通信、写入项目文件的逻辑 |
+
+这个文件内部同时存在三样东西，改之前务必分清：
+
+1. **内嵌题库快照**（第一个 `<script>` 里的 `window.GFTI_DATA`）—— 构建时注入，仅在在线数据源全部失败时兜底。要更新它，应当重新生成整页，而不是手改 JSON。
+2. **算法副本 `CUR_ALGO`** —— 与 `assessment.js` 的公式一一对应，供断网求解和历史算法对比。页脚 `#algoStamp` 会用特征签名（`algoSig`）与线上 `assessment.js` 比对，参数不同步就显红警告。**改算法参数时必须两边同步。**
+3. **求解器** —— `phase1`（贪心 + 代理距离局部搜索）与 `phase2`（模拟退火兜底），加上雷达图与方案列表的渲染。
+
+数据加载走 `DATA_URLS`（GitHub Pages → Netlify 依次尝试，各 8 秒超时），失败后提示「使用内置历史数据继续」。这也是它不能用 `file://` 直接打开的原因。
+
 ### 测试与文档
 
 | 路径 | 用途 |
@@ -133,6 +147,8 @@ GitHub Pages 本身使用 HTTPS，不受这个问题影响。
 仓库内容不等于公开网站内容。`scripts/build-pages.cjs` 按白名单生成 `dist-pages`，GitHub Actions 只部署这个目录。正式网站包含普通评测所需的四个源文件，不包含模拟诊断、测试和开发文档。
 
 发布包的边界由 `tests/pages-build.test.cjs` 锁定。新增正式资源时必须先修改这项测试，再更新打包脚本。设计决定见 [`ADR-0002`](./adr/0002-publish-production-pages-only.md)。
+
+因此 `gfti-rank-guide.html` 与 `simulation.html` **都不在** Pages 发布包里：它们只能在仓库目录（或本地静态服务）中打开。攻略页里的 `DATA_URLS` 指向线上 `data.js`，所以它即使不在发布包里，也能读到线上最新题库。
 
 ## 修改时必须守住的边界
 
